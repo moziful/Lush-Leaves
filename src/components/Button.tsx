@@ -18,7 +18,7 @@ export default function Button({
 }: ButtonProps) {
   // Base classes
   const baseStyle =
-    "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed select-none";
+    "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed select-none";
 
   // Variant classes
   const variants = {

@@ -128,8 +128,8 @@ export default function Register() {
     <div className="flex min-h-screen items-center justify-center bg-cream px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-3xl space-y-6 rounded-2xl border border-sage/30 bg-white p-8 shadow-xl transition-all duration-300 hover:shadow-2xl">
         <div className="text-center">
-          <Link href="/" className="inline-block text-3xl font-black tracking-wider text-forest">
-            Lush<span className="text-sage">Leaves</span>
+          <Link href="/" className="inline-block text-3xl font-black tracking-wider">
+            <span className="text-forest-dark">Lush<span className="text-forest">Leaves</span></span>
           </Link>
           <h2 className="mt-4 text-2xl font-bold text-slate-800">
             Create Account
