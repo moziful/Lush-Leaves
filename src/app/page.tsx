@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { FiArrowRight } from "react-icons/fi";
+import Button from "@/components/Button";
 
 export default function Home() {
   return (
@@ -33,17 +34,15 @@ export default function Home() {
             Explore a curated collection of healthy, greenhouse-grown indoor plants delivered securely to your doorstep.
           </p>
           <div className="flex justify-center gap-4 pt-2">
-            <Link
-              href="/explore"
-              className="flex items-center gap-2 rounded-xl bg-forest px-6 py-3 font-semibold text-white shadow-lg shadow-forest/25 transition-all hover:bg-forest-dark hover:translate-y-[-1px]"
-            >
-              Shop Collection <FiArrowRight />
+            <Link href="/explore">
+              <Button variant="primary" size="lg" className="flex items-center gap-2">
+                Shop Collection <FiArrowRight />
+              </Button>
             </Link>
-            <Link
-              href="/about"
-              className="rounded-xl border border-white/30 bg-white/10 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
-            >
-              Our Story
+            <Link href="/about">
+              <Button variant="secondary" size="lg">
+                Our Story
+              </Button>
             </Link>
           </div>
         </div>
