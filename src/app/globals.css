@@ -8,6 +8,7 @@
   --sage: #95d5b2;
   --terracotta: #e07a5f;
   --cream: #fbf8f1;
+  --rose: #d90429;
 }
 
 @theme {
@@ -19,6 +20,7 @@
   --color-sage: var(--sage);
   --color-terracotta: var(--terracotta);
   --color-cream: var(--cream);
+  --color-rose: var(--rose);
 }
 
 body {
