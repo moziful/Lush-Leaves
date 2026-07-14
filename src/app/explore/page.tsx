@@ -6,6 +6,7 @@ import { FiSearch, FiSliders, FiX, FiCheck, FiChevronRight, FiFilter } from "rea
 import { motion, AnimatePresence } from "framer-motion";
 import PlantCard from "@/components/PlantCard";
 import PlantDetailModal from "@/components/PlantDetailModal";
+import CustomSelect from "@/components/CustomSelect";
 
 interface Plant {
   id: string;
@@ -294,17 +295,41 @@ function ExploreContent() {
           Sort Catalog
         </h3>
         <div className="relative flex items-center w-full">
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="w-full rounded-xl border border-sage/15 bg-cream py-2.5 px-3 text-xs font-bold text-forest-dark outline-none transition-all duration-200 focus:border-forest focus:ring-2 focus:ring-forest/15 appearance-none cursor-pointer"
-          >
-            <option value="default">Sort by Default</option>
-            <option value="price-asc">Price: Low to High</option>
-            <option value="price-desc">Price: High to Low</option>
-            <option value="name-asc">Alphabetical: A-Z</option>
-            <option value="name-desc">Alphabetical: Z-A</option>
-          </select>
+          <CustomSelect
+            name="sortBy"
+            value={
+              sortBy === "price-asc"
+                ? "Price: Low to High"
+                : sortBy === "price-desc"
+                ? "Price: High to Low"
+                : sortBy === "name-asc"
+                ? "Alphabetical: A-Z"
+                : sortBy === "name-desc"
+                ? "Alphabetical: Z-A"
+                : "Sort by Default"
+            }
+            onChange={(val) => {
+              const key =
+                val === "Price: Low to High"
+                  ? "price-asc"
+                  : val === "Price: High to Low"
+                  ? "price-desc"
+                  : val === "Alphabetical: A-Z"
+                  ? "name-asc"
+                  : val === "Alphabetical: Z-A"
+                  ? "name-desc"
+                  : "default";
+              setSortBy(key);
+            }}
+            options={[
+              "Sort by Default",
+              "Price: Low to High",
+              "Price: High to Low",
+              "Alphabetical: A-Z",
+              "Alphabetical: Z-A",
+            ]}
+            className="w-full rounded-xl border border-sage/15 bg-cream py-2.5 px-3 text-xs font-bold text-forest-dark outline-none transition-all duration-200 focus:border-forest focus:ring-2 focus:ring-forest/15"
+          />
         </div>
       </div>
 

@@ -89,8 +89,10 @@ export default function CustomSelect({
         <li key={opt}>
           <button
             type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => handleSelect(opt)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleSelect(opt);
+            }}
             className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-colors hover:bg-sage/20 hover:text-forest-dark ${
               value === opt
                 ? "bg-forest/10 text-forest font-bold"
