@@ -145,6 +145,7 @@ function ExploreContent() {
     } else if (sortBy === "name-desc") {
       return b.title.localeCompare(a.title);
     }
+    return 0;
   });
 
   // Slicing Logic for Pagination
