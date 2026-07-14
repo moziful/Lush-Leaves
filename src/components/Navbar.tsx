@@ -112,7 +112,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav Links & Auth (Grouped in a single pill container separated by a vertical line) */}
-          <div className="hidden md:flex items-center gap-1.5 bg-slate-100/50 p-1.5 rounded-xl border border-slate-100/80">
+          <div className="hidden lg:flex items-center gap-1.5 bg-slate-100/50 p-1.5 rounded-xl border border-slate-100/80">
             <div className="flex items-center gap-1">
               {navItems.map((item) => (
                 <Link
@@ -194,7 +194,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-forest focus:outline-none"
@@ -207,7 +207,7 @@ export default function Navbar() {
 
       {/* Mobile Drawer */}
       {isOpen && (
-        <div className="md:hidden border-t border-slate-100 bg-cream px-4 py-4 space-y-3 animate-fadeIn">
+        <div className="lg:hidden border-t border-slate-100 bg-cream px-4 py-4 space-y-3 animate-fadeIn">
           <div className="flex flex-col gap-1.5 bg-slate-100/50 p-2 rounded-xl border border-slate-100">
             {navItems.map((item) => (
               <Link
