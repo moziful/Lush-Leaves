@@ -45,9 +45,9 @@ export default function Footer() {
               {[
                 { label: "All Plants", href: "/explore" },
                 { label: "Foliage", href: "/explore?category=Foliage" },
-                { label: "Succulents", href: "/explore?category=Succulent" },
-                { label: "Air Purifiers", href: "/explore?category=Air+Purifier" },
-                { label: "Flowering", href: "/explore?category=Flowering" },
+                { label: "Succulents", href: "/explore?category=Succulents" },
+                { label: "Flowers", href: "/explore?category=Flowers" },
+                { label: "Pet Friendly", href: "/explore?category=Pet+Friendly" },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link
