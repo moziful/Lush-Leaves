@@ -224,7 +224,11 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-              <div className="flex items-center gap-3">
+              <Link
+                href="/profile"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 hover:bg-sage/5 rounded-xl p-1 -m-1 transition-colors"
+              >
                 {user.imageUrl ? (
                   <Image
                     src={user.imageUrl}
@@ -251,7 +255,7 @@ export default function Navbar() {
                     <RoleBadge role={user.role} />
                   </div>
                 </div>
-              </div>
+              </Link>
 
               <button
                 onClick={() => {
