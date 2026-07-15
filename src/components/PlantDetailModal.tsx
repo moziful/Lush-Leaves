@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FiX, FiDroplet, FiSun, FiThermometer, FiCheck, FiAlertTriangle, FiShoppingBag } from "react-icons/fi";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,9 +29,12 @@ interface PlantDetailModalProps {
 }
 
 export default function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
+  const [buttonText, setButtonText] = useState("Add to Cart");
+
   useEffect(() => {
     if (plant) {
       document.body.style.overflow = "hidden";
+      setButtonText("Add to Cart");
     } else {
       document.body.style.overflow = "unset";
     }
@@ -49,6 +52,28 @@ export default function PlantDetailModal({ plant, onClose }: PlantDetailModalPro
   };
 
   const currentDiff = difficultyMeta[plant.difficulty] || difficultyMeta.Easy;
+
+  const handleAddToCart = () => {
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existingItem = cart.find((item: any) => item.plantId === plant.id);
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({
+        plantId: plant.id,
+        title: plant.title,
+        price: plant.price,
+        image: plant.image,
+        quantity: 1
+      });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    setButtonText("Added to cart");
+    window.dispatchEvent(new Event("cartUpdated"));
+    setTimeout(() => {
+      setButtonText("Add to Cart");
+    }, 2000);
+  };
 
   return (
     <AnimatePresence>
@@ -199,9 +224,13 @@ export default function PlantDetailModal({ plant, onClose }: PlantDetailModalPro
                   <span className="text-xs font-black uppercase tracking-wider text-forest/50">Price</span>
                   <span className="text-3xl font-black text-forest-dark">${plant.price.toFixed(2)}</span>
                 </div>
-                <Button variant="primary" className="flex items-center gap-2 px-6 py-3.5 shadow-md">
+                <Button
+                  variant="primary"
+                  onClick={handleAddToCart}
+                  className="flex items-center gap-2 px-6 py-3.5 shadow-md min-w-[150px] justify-center"
+                >
                   <FiShoppingBag className="text-base" />
-                  Add to Cart
+                  {buttonText}
                 </Button>
               </div>
             </div>

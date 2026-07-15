@@ -21,10 +21,11 @@ interface Order {
 interface OrdersTableProps {
   orders: Order[];
   onStatusUpdate?: (orderId: string, status: string) => void;
+  onRowClick?: (order: Order) => void;
   isAdmin?: boolean;
 }
 
-export default function OrdersTable({ orders, onStatusUpdate, isAdmin = false }: OrdersTableProps) {
+export default function OrdersTable({ orders, onStatusUpdate, onRowClick, isAdmin = false }: OrdersTableProps) {
   if (orders.length === 0) {
     return (
       <div className="rounded-2xl border border-sage/15 bg-white py-20 px-4 text-center shadow-sm animate-fadeIn">
@@ -50,7 +51,11 @@ export default function OrdersTable({ orders, onStatusUpdate, isAdmin = false }:
           </thead>
           <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
             {orders.map((o) => (
-              <tr key={o._id} className="hover:bg-cream/40 transition flex w-full items-center">
+              <tr
+                key={o._id}
+                onClick={() => onRowClick && onRowClick(o)}
+                className={`hover:bg-cream/40 transition flex w-full items-center ${onRowClick ? "cursor-pointer" : ""}`}
+              >
                 <td className="py-4 px-6 w-2/12 shrink-0 text-xs text-slate-400 font-mono font-bold">#{o._id.slice(-8)}</td>
                 {!isAdmin && (
                   <td className="py-4 px-6 w-2/12 shrink-0 text-xs text-slate-500 font-medium">

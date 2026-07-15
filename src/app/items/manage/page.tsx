@@ -66,6 +66,7 @@ interface SystemConfig {
   seasonalBanner: boolean;
   seasonalBannerExpiry: string | null;
   emailNotifications: boolean;
+  shippingCharge: number;
 }
 
 type TabType = "metrics" | "inventory" | "users" | "orders" | "coupons" | "flags" | "logs";
@@ -90,7 +91,8 @@ export default function ManageDashboardPage() {
     freeShippingExpiry: null,
     seasonalBanner: false,
     seasonalBannerExpiry: null,
-    emailNotifications: true
+    emailNotifications: true,
+    shippingCharge: 15
   });
 
   // Coupon form state
@@ -105,6 +107,7 @@ export default function ManageDashboardPage() {
 
   const [actionLoading, setActionLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     // Restore active tab from sessionStorage if present
@@ -663,6 +666,7 @@ export default function ManageDashboardPage() {
                 orders={filteredOrders}
                 isAdmin={true}
                 onStatusUpdate={handleOrderStatusUpdate}
+                onRowClick={(order) => setSelectedOrder(order)}
               />
             );
           })()
@@ -878,6 +882,34 @@ export default function ManageDashboardPage() {
                   }`} />
                 </button>
               </div>
+
+              {/* Shipping Fee Config */}
+              <div className="p-4 rounded-xl bg-sage/5 border border-sage/10 space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-xs font-black text-forest-dark uppercase tracking-wider">Standard Shipping Fee ($)</h4>
+                    <p className="text-[10px] text-slate-500 font-medium">Base shipping delivery rate applied to checkout carts.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={config.shippingCharge || 0}
+                      onChange={(e) => {
+                        const val = e.target.value === "" ? 0 : Number(e.target.value);
+                        setConfig({ ...config, shippingCharge: val });
+                      }}
+                      className="w-20 rounded-lg border border-sage/20 bg-white px-2 py-1.5 text-xs font-bold text-forest-dark outline-none focus:border-forest text-center"
+                    />
+                    <button
+                      onClick={() => handleSaveConfig(config)}
+                      className="rounded-lg bg-forest px-3 py-1.5 text-[10px] font-black uppercase text-white hover:bg-forest-dark cursor-pointer transition"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -970,6 +1002,12 @@ export default function ManageDashboardPage() {
         cancelLabel="Cancel"
         onConfirm={handleCouponDelete}
         onCancel={() => setCouponToDelete(null)}
+      />
+
+      {/* Detailed Order Profile Modal */}
+      <OrderDetailModal
+        order={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
       />
     </div>
   );

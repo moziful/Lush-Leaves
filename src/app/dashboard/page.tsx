@@ -6,6 +6,7 @@ import { FiShoppingBag, FiActivity } from "react-icons/fi";
 import MetricsPanel from "@/components/MetricsPanel";
 import OrdersTable from "@/components/OrdersTable";
 import DashboardTabs from "@/components/DashboardTabs";
+import OrderDetailModal from "@/components/OrderDetailModal";
 
 interface OrderItem {
   plantId: string;
@@ -34,6 +35,7 @@ export default function UserDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [couponsCount, setCouponsCount] = useState(0);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     // Restore active tab from sessionStorage if present
@@ -172,6 +174,7 @@ export default function UserDashboardPage() {
               <OrdersTable
                 orders={orders.slice(0, 3)}
                 isAdmin={false}
+                onRowClick={(order) => setSelectedOrder(order)}
               />
             </div>
           </div>
@@ -186,11 +189,18 @@ export default function UserDashboardPage() {
               <OrdersTable
                 orders={filteredOrders}
                 isAdmin={false}
+                onRowClick={(order) => setSelectedOrder(order)}
               />
             );
           })()
         )}
       </div>
+
+      {/* Detailed Order Profile Modal */}
+      <OrderDetailModal
+        order={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+      />
     </div>
   );
 }

@@ -14,7 +14,8 @@ import {
   FiInfo,
   FiBookOpen,
   FiEdit2,
-  FiActivity
+  FiActivity,
+  FiShoppingCart
 } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import RoleBadge from "./RoleBadge";
@@ -29,6 +30,7 @@ export default function Navbar() {
     name?: string;
     imageUrl?: string;
   } | null>(null);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     // Read user from localStorage
@@ -42,6 +44,22 @@ export default function Navbar() {
     } else {
       setUser(null);
     }
+
+    // Monitor local cart count
+    const updateCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+      setCartCount(totalItems);
+    };
+
+    updateCartCount();
+    window.addEventListener("storage", updateCartCount);
+    // Custom event dispatch hook for local changes
+    window.addEventListener("cartUpdated", updateCartCount);
+    return () => {
+      window.removeEventListener("storage", updateCartCount);
+      window.removeEventListener("cartUpdated", updateCartCount);
+    };
   }, [pathname]);
 
   const handleLogout = () => {
@@ -59,6 +77,11 @@ export default function Navbar() {
     { href: "/explore", label: "Explore Plants", icon: <FiCompass className="text-lg" /> },
     { href: "/about", label: "About Us", icon: <FiInfo className="text-lg" /> },
     { href: "/care-guide", label: "Care Guide", icon: <FiBookOpen className="text-lg" /> },
+    {
+      href: "/cart",
+      label: `Cart (${cartCount})`,
+      icon: <FiShoppingCart className="text-lg" />
+    },
   ];
 
   const navItems = user 
