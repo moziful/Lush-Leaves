@@ -26,10 +26,16 @@ export default function Footer() {
               Curating premium, healthy indoor plants to breathe life, style, and fresh air into your home.
             </p>
             <div className="flex items-center gap-2.5">
-              {[FiFacebook, FiInstagram, FiTwitter].map((Icon, i) => (
+              {[
+                { Icon: FiFacebook, href: "https://facebook.com/moziful" },
+                { Icon: FiInstagram, href: "https://instagram.com/moziful" },
+                { Icon: FiTwitter, href: "https://twitter.com/moziful" }
+              ].map(({ Icon, href }, i) => (
                 <a
                   key={i}
-                  href="#"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-sage/10 text-forest/60 hover:bg-forest hover:text-white transition-all duration-200"
                 >
                   <Icon className="h-4 w-4" />

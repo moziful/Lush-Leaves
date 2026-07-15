@@ -42,6 +42,14 @@ export default function HeroSection() {
           </Link>
         </div>
       </div>
+
+      {/* Pulsing Scroll Indicator */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 hidden sm:flex flex-col items-center gap-1.5 opacity-60">
+        <span className="text-[10px] uppercase font-bold tracking-widest text-slate-200 animate-pulse">Scroll</span>
+        <div className="w-5 h-8 border-2 border-slate-200 rounded-full flex justify-center p-1.5">
+          <div className="w-1 h-2 bg-slate-200 rounded-full animate-bounce" />
+        </div>
+      </div>
     </section>
   );
 }

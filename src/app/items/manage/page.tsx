@@ -745,10 +745,10 @@ export default function ManageDashboardPage() {
                             {plant.difficulty}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => startEditPlant(plant)}
-                            className="rounded-lg p-2 text-slate-400 hover:text-forest hover:bg-forest/5 transition cursor-pointer"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:text-forest hover:bg-forest/5 border border-slate-100 hover:border-forest/20 transition cursor-pointer"
                             title="Edit Plant"
                           >
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -757,7 +757,7 @@ export default function ManageDashboardPage() {
                           </button>
                           <button
                             onClick={() => setPlantToDelete(plant)}
-                            className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:text-rose hover:bg-rose/5 border border-slate-100 hover:border-rose/20 transition cursor-pointer"
                             title="Delete Plant"
                           >
                             <FiTrash2 className="h-4 w-4" />

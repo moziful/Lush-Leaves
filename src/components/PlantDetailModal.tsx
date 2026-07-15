@@ -29,12 +29,16 @@ interface PlantDetailModalProps {
 }
 
 export default function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
+  const [isInCart, setIsInCart] = useState(false);
   const [buttonText, setButtonText] = useState("Add to Cart");
 
   useEffect(() => {
     if (plant) {
       document.body.style.overflow = "hidden";
-      setButtonText("Add to Cart");
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const exists = cart.some((item: any) => item.plantId === plant.id);
+      setIsInCart(exists);
+      setButtonText(exists ? "Added to cart" : "Add to Cart");
     } else {
       document.body.style.overflow = "unset";
     }
@@ -55,24 +59,20 @@ export default function PlantDetailModal({ plant, onClose }: PlantDetailModalPro
 
   const handleAddToCart = () => {
     const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existingItem = cart.find((item: any) => item.plantId === plant.id);
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      cart.push({
-        plantId: plant.id,
-        title: plant.title,
-        price: plant.price,
-        image: plant.image,
-        quantity: 1
-      });
-    }
+    const exists = cart.some((item: any) => item.plantId === plant.id);
+    if (exists) return; // Prevent duplicate additions
+
+    cart.push({
+      plantId: plant.id,
+      title: plant.title,
+      price: plant.price,
+      image: plant.image,
+      quantity: 1
+    });
     localStorage.setItem("cart", JSON.stringify(cart));
+    setIsInCart(true);
     setButtonText("Added to cart");
     window.dispatchEvent(new Event("cartUpdated"));
-    setTimeout(() => {
-      setButtonText("Add to Cart");
-    }, 2000);
   };
 
   return (
@@ -116,7 +116,7 @@ export default function PlantDetailModal({ plant, onClose }: PlantDetailModalPro
                 sizes="(max-width: 768px) 100vw, 45vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-forest/80 via-transparent to-transparent" />
-              
+
               <div className="absolute bottom-6 left-6 right-6 text-white space-y-2">
                 <span className="inline-block rounded-full bg-sage px-3 py-1 text-[10px] font-black uppercase tracking-wider text-forest-dark shadow-sm">
                   {plant.category}
@@ -132,7 +132,7 @@ export default function PlantDetailModal({ plant, onClose }: PlantDetailModalPro
 
             {/* Right Side: Scrollable Details */}
             <div className="w-full md:w-1/2 p-6 sm:p-8 overflow-y-auto flex flex-col gap-6 scroll-smooth scrollbar-thin scrollbar-thumb-sage/20">
-              
+
               {/* Overview */}
               <div className="space-y-2.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -227,6 +227,7 @@ export default function PlantDetailModal({ plant, onClose }: PlantDetailModalPro
                 <Button
                   variant="primary"
                   onClick={handleAddToCart}
+                  disabled={isInCart}
                   className="flex items-center gap-2 px-6 py-3.5 shadow-md min-w-[150px] justify-center"
                 >
                   <FiShoppingBag className="text-base" />
