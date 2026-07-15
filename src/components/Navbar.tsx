@@ -13,7 +13,8 @@ import {
   FiCompass,
   FiInfo,
   FiBookOpen,
-  FiEdit2
+  FiEdit2,
+  FiActivity
 } from "react-icons/fi";
 import { MdLogout } from "react-icons/md";
 import RoleBadge from "./RoleBadge";
@@ -60,12 +61,17 @@ export default function Navbar() {
     { href: "/care-guide", label: "Care Guide", icon: <FiBookOpen className="text-lg" /> },
   ];
 
-  const navItems = user && user.role === "admin"
-    ? [
-      ...baseNavItems,
-      { href: "/items/add", label: "Add Plant", icon: <FiPlus className="text-lg" /> },
-      { href: "/items/manage", label: "Dashboard", icon: <FiSettings className="text-lg" /> },
-    ]
+  const navItems = user 
+    ? user.role === "admin"
+      ? [
+          ...baseNavItems,
+          { href: "/items/add", label: "Add Plant", icon: <FiPlus className="text-lg" /> },
+          { href: "/items/manage", label: "Console", icon: <FiSettings className="text-lg" /> },
+        ]
+      : [
+          ...baseNavItems,
+          { href: "/dashboard", label: "Dashboard", icon: <FiActivity className="text-lg" /> },
+        ]
     : baseNavItems;
 
   const linkClass = (href: string) => {
@@ -165,6 +171,7 @@ export default function Navbar() {
                       <FiEdit2 className="text-slate-400 group-hover/profile:text-forest shrink-0 h-3.5 w-3.5 mt-1 transition-colors" />
                     </Link>
 
+
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-2 py-2 text-xs font-bold text-red-600 transition-all duration-200 hover:bg-red-500/20 cursor-pointer"
@@ -256,6 +263,7 @@ export default function Navbar() {
                   </div>
                 </div>
               </Link>
+
 
               <button
                 onClick={() => {

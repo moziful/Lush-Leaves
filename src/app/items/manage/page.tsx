@@ -10,6 +10,8 @@ import {
 import ConfirmModal from "@/components/ConfirmModal";
 import RoleBadge from "@/components/RoleBadge";
 import Button from "@/components/Button";
+import MetricsPanel from "@/components/MetricsPanel";
+import OrdersTable from "@/components/OrdersTable";
 
 interface Plant {
   id: string;
@@ -449,49 +451,13 @@ export default function ManageDashboardPage() {
           </div>
         ) : activeTab === "metrics" ? (
           <div className="space-y-8 animate-fadeIn">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              
-              <div className="bg-white p-6 rounded-2xl border border-sage/15 shadow-sm flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-forest/10 flex items-center justify-center text-forest shrink-0">
-                  <FiLayers className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-forest-dark/40">Total Plants</p>
-                  <h3 className="text-2xl font-black text-forest-dark">{plants.length}</h3>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-sage/15 shadow-sm flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-forest/10 flex items-center justify-center text-forest shrink-0">
-                  <FiUsers className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-forest-dark/40">Registered Users</p>
-                  <h3 className="text-2xl font-black text-forest-dark">{users.length}</h3>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-sage/15 shadow-sm flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-forest/10 flex items-center justify-center text-forest shrink-0">
-                  <FiDollarSign className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-forest-dark/40">Avg Plant Price</p>
-                  <h3 className="text-2xl font-black text-forest-dark">${averagePrice}</h3>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-sage/15 shadow-sm flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-forest/10 flex items-center justify-center text-forest shrink-0">
-                  <FiShoppingBag className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-forest-dark/40">Sales Volume</p>
-                  <h3 className="text-2xl font-black text-forest-dark">${salesTotal.toFixed(2)}</h3>
-                </div>
-              </div>
-
-            </div>
+            <MetricsPanel
+              isAdmin={true}
+              plantsCount={plants.length}
+              usersCount={users.length}
+              averagePrice={averagePrice}
+              salesTotal={salesTotal}
+            />
 
             {/* Grid 2: Side Cards (Recent Activity summary) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -700,78 +666,18 @@ export default function ManageDashboardPage() {
             );
           })()
         ) : activeTab === "orders" ? (
-          /* Orders Queue Tab */
           (() => {
             const filteredOrders = orders.filter((o) =>
               o._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
               o.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
               o.status.toLowerCase().includes(searchQuery.toLowerCase())
             );
-            return filteredOrders.length === 0 ? (
-              <div className="rounded-2xl border border-sage/15 bg-white py-20 px-4 text-center shadow-sm animate-fadeIn">
-                <p className="text-base font-bold text-forest-dark/70">
-                  {orders.length === 0 ? "No customer checkout orders recorded." : "No matching checkout orders found."}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse flex flex-col">
-                    <thead>
-                      <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10 flex w-full">
-                        <th className="py-4 px-6 w-2/12 shrink-0">Order ID</th>
-                        <th className="py-4 px-6 w-3/12 shrink-0">Customer</th>
-                        <th className="py-4 px-6 w-3/12 shrink-0">Items Purchased</th>
-                        <th className="py-4 px-6 w-1/12 shrink-0">Total Amount</th>
-                        <th className="py-4 px-6 w-1/12 shrink-0">Fulfillment Status</th>
-                        <th className="py-4 px-6 w-2/12 shrink-0 text-center">Change State</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
-                      {filteredOrders.map((o) => (
-                        <tr key={o._id} className="hover:bg-cream/40 transition flex w-full items-center">
-                          <td className="py-4 px-6 w-2/12 shrink-0 text-xs text-slate-400 font-mono font-bold">#{o._id.slice(-8)}</td>
-                          <td className="py-4 px-6 w-3/12 shrink-0 font-bold text-forest-dark truncate">{o.userEmail}</td>
-                          <td className="py-4 px-6 w-3/12 shrink-0 text-xs text-slate-500 truncate">
-                            {o.items?.map((item) => `${item.title} (x${item.quantity})`).join(", ") || "No items"}
-                          </td>
-                          <td className="py-4 px-6 w-1/12 shrink-0 font-black text-forest">${(o.total || 0).toFixed(2)}</td>
-                          <td className="py-4 px-6 w-1/12 shrink-0">
-                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
-                              o.status === "Delivered"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                : o.status === "Shipped"
-                                ? "bg-blue-50 text-blue-600 border border-blue-100"
-                                : o.status === "Processing"
-                                ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
-                            }`}>
-                              {o.status || "Pending"}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 w-2/12 shrink-0">
-                            <div className="flex justify-center gap-1">
-                              {["Pending", "Processing", "Shipped", "Delivered"].map((st) => (
-                                <button
-                                  key={st}
-                                  onClick={() => handleOrderStatusUpdate(o._id, st)}
-                                  className={`px-1.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition cursor-pointer ${
-                                    o.status === st
-                                      ? "bg-forest text-white border-forest"
-                                      : "bg-white text-slate-400 border-slate-200 hover:bg-slate-50"
-                                  }`}
-                                >
-                                  {st.slice(0, 4)}
-                                </button>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            return (
+              <OrdersTable
+                orders={filteredOrders}
+                isAdmin={true}
+                onStatusUpdate={handleOrderStatusUpdate}
+              />
             );
           })()
         ) : activeTab === "coupons" ? (
