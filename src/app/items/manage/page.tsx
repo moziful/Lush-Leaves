@@ -12,6 +12,7 @@ import RoleBadge from "@/components/RoleBadge";
 import Button from "@/components/Button";
 import MetricsPanel from "@/components/MetricsPanel";
 import OrdersTable from "@/components/OrdersTable";
+import DashboardTabs from "@/components/DashboardTabs";
 
 interface Plant {
   id: string;
@@ -385,34 +386,19 @@ export default function ManageDashboardPage() {
           </div>
         </div>
 
-        {/* Tab Controls */}
-        <div className="flex flex-wrap gap-1 border-b border-sage/15">
-          {[
+        <DashboardTabs
+          tabs={[
             { id: "metrics", label: "Metrics", icon: FiActivity },
             { id: "inventory", label: "Inventory", icon: FiLayers },
             { id: "users", label: "Users", icon: FiUsers },
             { id: "orders", label: "Orders", icon: FiShoppingBag },
             { id: "coupons", label: "Promo Codes", icon: FiTag },
             { id: "flags", label: "Feature Flags", icon: FiToggleLeft },
-            { id: "logs", label: "Audit Logs", icon: FiClock },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id as TabType)}
-                className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer ${
-                  isActive
-                    ? "border-forest text-forest"
-                    : "border-transparent text-forest-dark/50 hover:text-forest"
-                }`}
-              >
-                <Icon className="h-4 w-4" /> {tab.label}
-              </button>
-            );
-          })}
-        </div>
+            { id: "logs", label: "Audit Logs", icon: FiClock }
+          ]}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
 
         {/* Search Bar Input Panel (Shown on all tabs except Metrics and Flags) */}
         {!["metrics", "flags"].includes(activeTab) && (

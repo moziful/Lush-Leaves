@@ -5,6 +5,7 @@ import { useRouter as useNextRouter } from "next/navigation";
 import { FiShoppingBag, FiActivity } from "react-icons/fi";
 import MetricsPanel from "@/components/MetricsPanel";
 import OrdersTable from "@/components/OrdersTable";
+import DashboardTabs from "@/components/DashboardTabs";
 
 interface OrderItem {
   plantId: string;
@@ -35,6 +36,14 @@ export default function UserDashboardPage() {
   const [couponsCount, setCouponsCount] = useState(0);
 
   useEffect(() => {
+    // Restore active tab from sessionStorage if present
+    const savedTab = sessionStorage.getItem("user_active_tab");
+    if (savedTab && ["metrics", "orders"].includes(savedTab)) {
+      setActiveTab(savedTab as TabType);
+    }
+  }, []);
+
+  useEffect(() => {
     const token = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
 
@@ -46,6 +55,12 @@ export default function UserDashboardPage() {
     setAuthChecking(false);
     loadData();
   }, [router, activeTab]);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchQuery("");
+    sessionStorage.setItem("user_active_tab", tab);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -105,26 +120,14 @@ export default function UserDashboardPage() {
             <p className="text-sm text-forest-dark/50 font-medium">View your botanical purchase history, order delivery statuses, and active savings.</p>
           </div>
         </div>
-        <div className="flex border-b border-sage/15">
-          <button
-            onClick={() => { setActiveTab("metrics"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-6 py-3.5 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer ${activeTab === "metrics"
-              ? "border-forest text-forest"
-              : "border-transparent text-forest-dark/50 hover:text-forest"
-              }`}
-          >
-            <FiActivity className="h-4 w-4" /> Overview Summary
-          </button>
-          <button
-            onClick={() => { setActiveTab("orders"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-6 py-3.5 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer ${activeTab === "orders"
-              ? "border-forest text-forest"
-              : "border-transparent text-forest-dark/50 hover:text-forest"
-              }`}
-          >
-            <FiShoppingBag className="h-4 w-4" /> Order History
-          </button>
-        </div>
+        <DashboardTabs
+          tabs={[
+            { id: "metrics", label: "Overview Summary", icon: FiActivity },
+            { id: "orders", label: "Order History", icon: FiShoppingBag }
+          ]}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
         {activeTab === "orders" && (
           <div className="flex justify-end animate-fadeIn">
             <div className="relative w-full max-w-md">
