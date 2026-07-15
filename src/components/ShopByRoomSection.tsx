@@ -61,7 +61,7 @@ export default function ShopByRoomSection() {
               key={space.name}
               href={space.href}
               className={`group relative flex flex-col justify-end overflow-hidden rounded-3xl bg-slate-900 border border-sage/10 shadow-sm transition-all duration-300 hover:shadow-md ${
-                space.size === "large" ? "md:col-span-2 h-[420px]" : "h-[420px]"
+                space.size === "large" ? "md:col-span-2 h-[280px] sm:h-[420px]" : "h-[280px] sm:h-[420px]"
               }`}
             >
               {/* Image with zoom effect on hover */}

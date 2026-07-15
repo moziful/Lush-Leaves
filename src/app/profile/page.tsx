@@ -280,7 +280,7 @@ export default function ProfilePage() {
             </button>
           </div>
           <div className="lg:col-span-2 bg-white rounded-2xl border border-sage/20 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-sage/10 bg-sage/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-sage/10 bg-sage/5">
               <div>
                 <h2 className="text-sm font-black text-forest-dark uppercase tracking-wider">
                   Account Details

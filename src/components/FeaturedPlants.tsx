@@ -41,7 +41,7 @@ export default function FeaturedPlants() {
     <section className="bg-cream py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-end justify-between mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div className="space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-forest/50">
               Handpicked for you

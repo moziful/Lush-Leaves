@@ -16,7 +16,7 @@ interface DashboardTabsProps {
 
 export default function DashboardTabs({ tabs, activeTab, onTabChange }: DashboardTabsProps) {
   return (
-    <div className="flex border-b border-sage/15 overflow-x-auto scrollbar-thin">
+    <div className="flex justify-center border-b border-sage/15 overflow-x-auto scrollbar-thin">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -30,7 +30,10 @@ export default function DashboardTabs({ tabs, activeTab, onTabChange }: Dashboar
                 : "border-transparent text-forest-dark/50 hover:text-forest"
             }`}
           >
-            <Icon className="h-4 w-4" /> {tab.label}
+            <Icon className="h-4 w-4" />
+            <span className={isActive ? "hidden sm:inline" : "hidden md:inline"}>
+              {tab.label}
+            </span>
           </button>
         );
       })}

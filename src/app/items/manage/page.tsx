@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  FiPlus, FiTrash2, FiSettings, FiDroplet, FiSun, FiUsers, FiLayers, FiShield, FiCalendar, FiActivity, FiTag, FiTrendingUp, FiDollarSign, FiClock, FiFileText, FiShoppingBag, FiToggleLeft
+  FiPlus, FiTrash2, FiSettings, FiDroplet, FiSun, FiUsers, FiLayers, FiShield, FiCalendar, FiActivity, FiTag, FiTrendingUp, FiDollarSign, FiClock, FiFileText, FiShoppingBag, FiToggleLeft,
+  FiChevronLeft, FiUpload, FiAlertTriangle, FiImage, FiInfo
 } from "react-icons/fi";
 import ConfirmModal from "@/components/ConfirmModal";
 import RoleBadge from "@/components/RoleBadge";
@@ -14,6 +15,47 @@ import MetricsPanel from "@/components/MetricsPanel";
 import OrdersTable from "@/components/OrdersTable";
 import DashboardTabs from "@/components/DashboardTabs";
 import OrderDetailModal from "@/components/OrderDetailModal";
+import SuggestionInput from "@/components/SuggestionInput";
+import CustomSelect from "@/components/CustomSelect";
+
+interface CommonProblem { problem: string; solution: string; }
+
+const CATEGORIES = ["Foliage", "Succulents", "Flowers", "Pet Friendly"];
+const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
+
+const SUGGESTIONS = {
+  watering: [
+    "Once a week", "Every 2 weeks", "Every 2–3 weeks",
+    "Once a month", "Keep moist", "When soil is dry",
+  ],
+  sunlight: [
+    "Full Sun", "Bright Indirect", "Low to Bright Indirect",
+    "Partial Shade", "Full Shade", "Filtered Light",
+  ],
+  temperature: [
+    "10°C – 20°C", "15°C – 25°C", "15°C – 29°C",
+    "18°C – 27°C", "20°C – 30°C", "Above 15°C",
+  ],
+};
+
+const addPlantInputClass =
+  "w-full rounded-xl border border-sage/25 bg-white px-4 py-3 text-sm font-medium text-forest-dark outline-none transition focus:border-forest focus:ring-2 focus:ring-forest/15 placeholder:text-slate-400";
+const addPlantLabelClass =
+  "block text-[11px] font-black uppercase tracking-wider text-forest-dark/40 mb-1.5";
+
+function SectionCard({ icon: Icon, title, children }: {
+  icon: React.ElementType; title: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-sage/15 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2.5 px-6 py-4 border-b border-sage/10 bg-sage/5">
+        <Icon className="h-4 w-4 text-forest" />
+        <h2 className="text-xs font-black uppercase tracking-widest text-forest-dark/60">{title}</h2>
+      </div>
+      <div className="p-6 space-y-5">{children}</div>
+    </div>
+  );
+}
 
 interface Plant {
   id: string;
@@ -21,8 +63,15 @@ interface Plant {
   price: number;
   image: string;
   category: string;
-  difficulty: string;
+  difficulty: "Easy" | "Medium" | "Hard";
   watering: string;
+  scientificName?: string;
+  short?: string;
+  description?: string;
+  sunlight?: string;
+  temperature?: string;
+  detailedCare?: string[];
+  commonProblems?: CommonProblem[];
 }
 
 interface User {
@@ -103,6 +152,31 @@ export default function ManageDashboardPage() {
   const [newCouponCode, setNewCouponCode] = useState("");
   const [newCouponDiscount, setNewCouponDiscount] = useState("");
 
+  // Add Plant form states
+  const [addForm, setAddForm] = useState({
+    title: "",
+    scientificName: "",
+    category: "Foliage",
+    short: "",
+    description: "",
+    price: "",
+    image: "",
+    difficulty: "Easy" as "Easy" | "Medium" | "Hard",
+    watering: "",
+    sunlight: "",
+    temperature: "",
+  });
+  const [addDetailedCare, setAddDetailedCare] = useState<string[]>([""]);
+  const [addCommonProblems, setAddCommonProblems] = useState<CommonProblem[]>([
+    { problem: "", solution: "" },
+  ]);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [addUploadingPhoto, setAddUploadingPhoto] = useState(false);
+  const [addShowConfirm, setAddShowConfirm] = useState(false);
+  const [addSuccess, setAddSuccess] = useState("");
+  const [addError, setAddError] = useState("");
+  const addPhotoInputRef = useRef<HTMLInputElement>(null);
+
   // Action confirmations
   const [plantToDelete, setPlantToDelete] = useState<Plant | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -113,10 +187,13 @@ export default function ManageDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Edit Plant Mode state
+  const [plantToEdit, setPlantToEdit] = useState<Plant | null>(null);
+
   useEffect(() => {
     // Restore active tab from sessionStorage if present
     const savedTab = sessionStorage.getItem("admin_active_tab");
-    if (savedTab && ["metrics", "inventory", "users", "orders", "coupons", "flags", "logs"].includes(savedTab)) {
+    if (savedTab && ["metrics", "inventory", "users", "orders", "coupons", "flags", "logs", "add-plant"].includes(savedTab)) {
       setActiveTab(savedTab as TabType);
     }
   }, []);
@@ -148,6 +225,7 @@ export default function ManageDashboardPage() {
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setSearchQuery("");
+    setPlantToEdit(null);
     sessionStorage.setItem("admin_active_tab", tab);
   };
 
@@ -330,6 +408,121 @@ export default function ManageDashboardPage() {
     }
   };
 
+  const handleAddPlantField = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setAddForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (addError) setAddError("");
+  };
+
+  const handleAddPlantPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAddUploadingPhoto(true);
+    setAddError("");
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setAddForm((prev) => ({ ...prev, image: data.url }));
+      } else {
+        setAddError(data.message || "Image upload failed.");
+      }
+    } catch { setAddError("Network error during photo upload."); }
+    finally {
+      setAddUploadingPhoto(false);
+      if (addPhotoInputRef.current) addPhotoInputRef.current.value = "";
+    }
+  };
+
+  const updateAddPlantCare = (i: number, val: string) =>
+    setAddDetailedCare((prev) => prev.map((v, idx) => (idx === i ? val : v)));
+  const addAddPlantCare = () => setAddDetailedCare((prev) => [...prev, ""]);
+  const removeAddPlantCare = (i: number) => setAddDetailedCare((prev) => prev.filter((_, idx) => idx !== i));
+
+  const updateAddPlantProblem = (i: number, field: keyof CommonProblem, val: string) =>
+    setAddCommonProblems((prev) => prev.map((p, idx) => idx === i ? { ...p, [field]: val } : p));
+  const addAddPlantProblem = () => setAddCommonProblems((prev) => [...prev, { problem: "", solution: "" }]);
+  const removeAddPlantProblem = (i: number) => setAddCommonProblems((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleAddPlantSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addForm.image) { setAddError("Please upload or enter a plant image."); return; }
+    setAddShowConfirm(true);
+  };
+
+  const startEditPlant = (plant: Plant) => {
+    setPlantToEdit(plant);
+    setAddForm({
+      title: plant.title,
+      scientificName: plant.scientificName || "",
+      category: plant.category,
+      short: plant.short || "",
+      description: plant.description || "",
+      price: plant.price.toString(),
+      image: plant.image,
+      difficulty: plant.difficulty,
+      watering: plant.watering || "",
+      sunlight: plant.sunlight || "",
+      temperature: plant.temperature || "",
+    });
+    setAddDetailedCare(plant.detailedCare && plant.detailedCare.length > 0 ? plant.detailedCare : [""]);
+    setAddCommonProblems(plant.commonProblems && plant.commonProblems.length > 0 ? plant.commonProblems : [{ problem: "", solution: "" }]);
+    setActiveTab("add-plant");
+    sessionStorage.setItem("admin_active_tab", "add-plant");
+  };
+
+  const handleAddPlantConfirmSubmit = async () => {
+    setAddShowConfirm(false);
+    setAddSubmitting(true);
+    setAddError("");
+    const token = localStorage.getItem("token");
+    try {
+      const url = plantToEdit ? `/api/plants/${plantToEdit.id}` : "/api/plants";
+      const method = plantToEdit ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          ...addForm,
+          price: parseFloat(addForm.price),
+          detailedCare: addDetailedCare.filter(Boolean),
+          commonProblems: addCommonProblems.filter((p) => p.problem || p.solution),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || `Failed to ${plantToEdit ? "update" : "create"} plant.`);
+      setAddSuccess(`Plant ${plantToEdit ? "updated" : "added"} successfully!`);
+      
+      setAddForm({
+        title: "",
+        scientificName: "",
+        category: "Foliage",
+        short: "",
+        description: "",
+        price: "",
+        image: "",
+        difficulty: "Easy" as "Easy" | "Medium" | "Hard",
+        watering: "",
+        sunlight: "",
+        temperature: "",
+      });
+      setAddDetailedCare([""]);
+      setAddCommonProblems([{ problem: "", solution: "" }]);
+      setPlantToEdit(null);
+      
+      setTimeout(() => {
+        setAddSuccess("");
+        loadData();
+        setActiveTab("inventory");
+        sessionStorage.setItem("admin_active_tab", "inventory");
+      }, 1500);
+    } catch (err: any) {
+      setAddError(err.message || "Something went wrong.");
+    } finally { setAddSubmitting(false); }
+  };
+
   const handleSaveConfig = async (newConfig: SystemConfig) => {
     const token = localStorage.getItem("token");
     try {
@@ -380,23 +573,13 @@ export default function ManageDashboardPage() {
             </h1>
             <p className="text-sm text-forest-dark/50 font-medium">Control botanical listings, inventory catalogs, system accounts, and configuration boards.</p>
           </div>
-          
-          <div className="flex items-center gap-3">
-            {activeTab === "inventory" && (
-              <Link
-                href="/items/add"
-                className="flex items-center gap-1.5 rounded-xl bg-forest px-5 py-3 text-sm font-bold text-white shadow-sm shadow-forest/20 hover:bg-forest-dark transition-all active:scale-95 cursor-pointer"
-              >
-                <FiPlus className="h-4.5 w-4.5" /> Add Plant
-              </Link>
-            )}
-          </div>
         </div>
 
         <DashboardTabs
           tabs={[
             { id: "metrics", label: "Metrics", icon: FiActivity },
             { id: "inventory", label: "Inventory", icon: FiLayers },
+            { id: "add-plant", label: plantToEdit ? "Edit Plant" : "Add Plant", icon: FiPlus },
             { id: "users", label: "Users", icon: FiUsers },
             { id: "orders", label: "Orders", icon: FiShoppingBag },
             { id: "coupons", label: "Promo Codes", icon: FiTag },
@@ -407,8 +590,8 @@ export default function ManageDashboardPage() {
           onTabChange={handleTabChange}
         />
 
-        {/* Search Bar Input Panel (Shown on all tabs except Metrics and Flags) */}
-        {!["metrics", "flags"].includes(activeTab) && (
+        {/* Search Bar Input Panel (Shown on all tabs except Metrics, Flags, and Add Plant) */}
+        {!["metrics", "flags", "add-plant"].includes(activeTab) && (
           <div className="flex justify-end animate-fadeIn">
             <div className="relative w-full max-w-md">
               <input
@@ -518,58 +701,120 @@ export default function ManageDashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse flex flex-col">
-                    <thead>
-                      <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10 flex w-full">
-                        <th className="py-4 px-6 w-1/12 shrink-0">Image</th>
-                        <th className="py-4 px-6 w-3/12 shrink-0">Title</th>
-                        <th className="py-4 px-6 w-2/12 shrink-0">Category</th>
-                        <th className="py-4 px-6 w-2/12 shrink-0">Difficulty</th>
-                        <th className="py-4 px-6 w-2/12 shrink-0">Watering</th>
-                        <th className="py-4 px-6 w-1/12 shrink-0">Price</th>
-                        <th className="py-4 px-6 w-1/12 shrink-0 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
-                      {filteredPlants.map((plant) => (
-                        <tr key={plant.id} className="hover:bg-cream/40 transition flex w-full items-center">
-                          <td className="py-4 px-6 w-1/12 shrink-0">
-                            <div className="relative h-12 w-12 rounded-xl overflow-hidden border border-sage/15 bg-sage/5">
-                              <Image src={plant.image} alt={plant.title} fill className="object-cover" />
-                            </div>
-                          </td>
-                          <td className="py-4 px-6 w-3/12 shrink-0 font-bold text-forest-dark truncate">{plant.title}</td>
-                          <td className="py-4 px-6 w-2/12 shrink-0">
-                            <span className="rounded-full bg-sage/10 px-2.5 py-1 text-xs font-bold text-forest border border-sage/20">
-                              {plant.category}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 w-2/12 shrink-0">
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-bold border ${
-                              difficultyColor[plant.difficulty as "Easy" | "Medium" | "Hard"] || "text-slate-600 bg-slate-50 border-slate-100"
-                            }`}>
-                              {plant.difficulty}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 w-2/12 shrink-0 text-xs text-slate-500 font-medium truncate">{plant.watering || "—"}</td>
-                          <td className="py-4 px-6 w-1/12 shrink-0 font-black text-forest">${plant.price.toFixed(2)}</td>
-                          <td className="py-4 px-6 w-1/12 shrink-0">
-                            <div className="flex items-center justify-center gap-3">
-                              <button
-                                onClick={() => setPlantToDelete(plant)}
-                                className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
-                                title="Delete Plant"
-                              >
-                                <FiTrash2 className="h-4.5 w-4.5" />
-                              </button>
-                            </div>
-                          </td>
+              <div className="animate-fadeIn">
+                {/* Mobile Card Layout */}
+                <div className="md:hidden rounded-2xl border border-sage/15 bg-white shadow-sm overflow-hidden divide-y divide-sage/25">
+                  {filteredPlants.map((plant) => (
+                    <div key={plant.id} className="p-4 space-y-3 transition-all">
+                      {/* Row 1: Image + Title + Price */}
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-12 w-12 rounded-xl overflow-hidden border border-sage/15 bg-sage/5 shrink-0">
+                          <Image src={plant.image} alt={plant.title} fill className="object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-forest-dark truncate">{plant.title}</p>
+                          <p className="text-xs text-slate-500 font-medium">{plant.watering || "—"}</p>
+                        </div>
+                        <span className="text-sm font-black text-forest shrink-0">${plant.price.toFixed(2)}</span>
+                      </div>
+                      {/* Row 2: Badges + Delete */}
+                      <div className="flex items-center justify-between pt-1 border-t border-sage/10">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="rounded-full bg-sage/10 px-2.5 py-1 text-[10px] font-bold text-forest border border-sage/20">
+                            {plant.category}
+                          </span>
+                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold border ${
+                            difficultyColor[plant.difficulty as "Easy" | "Medium" | "Hard"] || "text-slate-600 bg-slate-50 border-slate-100"
+                          }`}>
+                            {plant.difficulty}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => startEditPlant(plant)}
+                            className="rounded-lg p-2 text-slate-400 hover:text-forest hover:bg-forest/5 transition cursor-pointer"
+                            title="Edit Plant"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => setPlantToDelete(plant)}
+                            className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                            title="Delete Plant"
+                          >
+                            <FiTrash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden md:block overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[700px] table-fixed">
+                      <thead>
+                        <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10">
+                          <th className="py-4 px-6 w-[8%]">Image</th>
+                          <th className="py-4 px-6 w-[25%]">Title</th>
+                          <th className="py-4 px-6 w-[15%]">Category</th>
+                          <th className="py-4 px-6 w-[15%]">Difficulty</th>
+                          <th className="py-4 px-6 w-[17%]">Watering</th>
+                          <th className="py-4 px-6 w-[10%]">Price</th>
+                          <th className="py-4 px-6 w-[10%] text-center">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
+                        {filteredPlants.map((plant) => (
+                          <tr key={plant.id} className="hover:bg-cream/40 transition">
+                            <td className="py-4 px-6">
+                              <div className="relative h-12 w-12 rounded-xl overflow-hidden border border-sage/15 bg-sage/5">
+                                <Image src={plant.image} alt={plant.title} fill className="object-cover" />
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 font-bold text-forest-dark truncate">{plant.title}</td>
+                            <td className="py-4 px-6">
+                              <span className="rounded-full bg-sage/10 px-2.5 py-1 text-xs font-bold text-forest border border-sage/20">
+                                {plant.category}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={`rounded-full px-2.5 py-1 text-xs font-bold border ${
+                                difficultyColor[plant.difficulty as "Easy" | "Medium" | "Hard"] || "text-slate-600 bg-slate-50 border-slate-100"
+                              }`}>
+                                {plant.difficulty}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-xs text-slate-500 font-medium truncate">{plant.watering || "—"}</td>
+                            <td className="py-4 px-6 font-black text-forest">${plant.price.toFixed(2)}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => startEditPlant(plant)}
+                                  className="rounded-lg p-2 text-slate-400 hover:text-forest hover:bg-forest/5 transition cursor-pointer"
+                                  title="Edit Plant"
+                                >
+                                  <svg className="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => setPlantToDelete(plant)}
+                                  className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                                  title="Delete Plant"
+                                >
+                                  <FiTrash2 className="h-4.5 w-4.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             );
@@ -588,72 +833,127 @@ export default function ManageDashboardPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse flex flex-col">
-                    <thead>
-                      <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10 flex w-full">
-                        <th className="py-4 px-6 w-1/12 shrink-0">Profile</th>
-                        <th className="py-4 px-6 w-2/12 shrink-0">Name</th>
-                        <th className="py-4 px-6 w-3/12 shrink-0">Email Address</th>
-                        <th className="py-4 px-6 w-2/12 shrink-0">Access Level</th>
-                        <th className="py-4 px-6 w-3/12 shrink-0 text-center">Change Role</th>
-                        <th className="py-4 px-6 w-1/12 shrink-0 text-center">Remove</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
-                      {filteredUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-cream/40 transition flex w-full items-center">
-                          <td className="py-4 px-6 w-1/12 shrink-0">
-                            {user.imageUrl ? (
-                              <div className="relative h-10 w-10 rounded-full overflow-hidden border border-sage/15 bg-sage/5">
-                                <Image src={user.imageUrl} alt={user.name} fill className="object-cover" />
-                              </div>
-                            ) : (
-                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/10 border border-sage/20 text-xs font-black text-forest">
-                                {user.name ? user.name.slice(0, 2).toUpperCase() : user.email.slice(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-4 px-6 w-2/12 shrink-0 font-bold text-forest-dark truncate">{user.name || "—"}</td>
-                          <td className="py-4 px-6 w-3/12 shrink-0 text-slate-500 font-medium truncate">{user.email}</td>
-                          <td className="py-4 px-6 w-2/12 shrink-0">
-                            <RoleBadge role={user.role} />
-                          </td>
-                          <td className="py-4 px-6 w-3/12 shrink-0">
-                            <div className="flex justify-center gap-1.5">
-                              {user.role === "admin" ? (
-                                <button
-                                  onClick={() => setUserToPromote({ user, targetRole: "user" })}
-                                  className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
-                                >
-                                  Demote to User
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => setUserToPromote({ user, targetRole: "admin" })}
-                                  className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-forest bg-forest/5 hover:bg-forest hover:text-white border border-forest/15 transition cursor-pointer"
-                                >
-                                  Promote to Admin
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-4 px-6 w-1/12 shrink-0">
-                            <div className="flex items-center justify-center">
-                              <button
-                                onClick={() => setUserToDelete(user)}
-                                className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
-                                title="Delete Account"
-                              >
-                                <FiTrash2 className="h-4.5 w-4.5" />
-                              </button>
-                            </div>
-                          </td>
+              <div className="animate-fadeIn">
+                {/* Mobile Card Layout */}
+                <div className="md:hidden rounded-2xl border border-sage/15 bg-white shadow-sm overflow-hidden divide-y divide-sage/25">
+                  {filteredUsers.map((user) => (
+                    <div key={user.id} className="p-4 space-y-3">
+                      {/* Row 1: Avatar + Name + Role Badge */}
+                      <div className="flex items-center gap-3">
+                        {user.imageUrl ? (
+                          <div className="relative h-10 w-10 rounded-full overflow-hidden border border-sage/15 bg-sage/5 shrink-0">
+                            <Image src={user.imageUrl} alt={user.name} fill className="object-cover" />
+                          </div>
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/10 border border-sage/20 text-xs font-black text-forest shrink-0">
+                            {user.name ? user.name.slice(0, 2).toUpperCase() : user.email.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-forest-dark truncate">{user.name || "—"}</p>
+                          <p className="text-xs text-slate-500 font-medium truncate">{user.email}</p>
+                        </div>
+                        <RoleBadge role={user.role} />
+                      </div>
+                      {/* Row 2: Actions */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-sage/10">
+                        <div className="flex-1">
+                          {user.role === "admin" ? (
+                            <button
+                              onClick={() => setUserToPromote({ user, targetRole: "user" })}
+                              className="w-full flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                            >
+                              Demote to User
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setUserToPromote({ user, targetRole: "admin" })}
+                              className="w-full flex items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-bold text-forest bg-forest/5 hover:bg-forest hover:text-white border border-forest/15 transition cursor-pointer"
+                            >
+                              Promote to Admin
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setUserToDelete(user)}
+                          className="rounded-lg p-2.5 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer border border-sage/15"
+                          title="Delete Account"
+                        >
+                          <FiTrash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table Layout */}
+                <div className="hidden md:block overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[700px] table-fixed">
+                      <thead>
+                        <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10">
+                          <th className="py-4 px-6 w-[8%]">Profile</th>
+                          <th className="py-4 px-6 w-[17%]">Name</th>
+                          <th className="py-4 px-6 w-[25%]">Email Address</th>
+                          <th className="py-4 px-6 w-[15%]">Access Level</th>
+                          <th className="py-4 px-6 w-[25%] text-center">Change Role</th>
+                          <th className="py-4 px-6 w-[10%] text-center">Remove</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
+                        {filteredUsers.map((user) => (
+                          <tr key={user.id} className="hover:bg-cream/40 transition">
+                            <td className="py-4 px-6">
+                              {user.imageUrl ? (
+                                <div className="relative h-10 w-10 rounded-full overflow-hidden border border-sage/15 bg-sage/5">
+                                  <Image src={user.imageUrl} alt={user.name} fill className="object-cover" />
+                                </div>
+                              ) : (
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/10 border border-sage/20 text-xs font-black text-forest">
+                                  {user.name ? user.name.slice(0, 2).toUpperCase() : user.email.slice(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-4 px-6 font-bold text-forest-dark truncate">{user.name || "—"}</td>
+                            <td className="py-4 px-6 text-slate-500 font-medium truncate">{user.email}</td>
+                            <td className="py-4 px-6">
+                              <RoleBadge role={user.role} />
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex justify-center gap-1.5">
+                                {user.role === "admin" ? (
+                                  <button
+                                    onClick={() => setUserToPromote({ user, targetRole: "user" })}
+                                    className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                                  >
+                                    Demote to User
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => setUserToPromote({ user, targetRole: "admin" })}
+                                    className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-forest bg-forest/5 hover:bg-forest hover:text-white border border-forest/15 transition cursor-pointer"
+                                  >
+                                    Promote to Admin
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center justify-center">
+                                <button
+                                  onClick={() => setUserToDelete(user)}
+                                  className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                                  title="Delete Account"
+                                >
+                                  <FiTrash2 className="h-4.5 w-4.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             );
@@ -711,60 +1011,92 @@ export default function ManageDashboardPage() {
             </div>
 
             {/* Coupons List */}
-            <div className="lg:col-span-2 overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10">
-                      <th className="py-4 px-6">Code</th>
-                      <th className="py-4 px-6">Discount</th>
-                      <th className="py-4 px-6">Status</th>
-                      <th className="py-4 px-6">Created At</th>
-                      <th className="py-4 px-6 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
-                    {(() => {
-                      const filteredCoupons = coupons.filter((c) =>
-                        c.code.toLowerCase().includes(searchQuery.toLowerCase())
-                      );
-                      return filteredCoupons.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-8 px-6 text-center text-xs font-bold text-slate-400">
-                            {coupons.length === 0 ? "No promo codes defined yet." : "No matching promo codes found."}
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredCoupons.map((c) => (
-                          <tr key={c._id}>
-                            <td className="py-4 px-6 font-mono font-black text-forest-dark">{c.code}</td>
-                            <td className="py-4 px-6 font-extrabold text-forest">${c.discount.toFixed(2)} OFF</td>
-                            <td className="py-4 px-6">
+            <div className="lg:col-span-2">
+              {(() => {
+                const filteredCoupons = coupons.filter((c) =>
+                  c.code.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                return filteredCoupons.length === 0 ? (
+                  <div className="rounded-2xl border border-sage/15 bg-white py-8 px-6 text-center text-xs font-bold text-slate-400 shadow-sm">
+                    {coupons.length === 0 ? "No promo codes defined yet." : "No matching promo codes found."}
+                  </div>
+                ) : (
+                  <div>
+                    {/* Mobile Card Layout */}
+                    <div className="md:hidden rounded-2xl border border-sage/15 bg-white shadow-sm overflow-hidden divide-y divide-sage/25">
+                      {filteredCoupons.map((c) => (
+                        <div key={c._id} className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-mono font-black text-forest-dark">{c.code}</span>
                               <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
                                 c.isActive ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-50 text-slate-500"
                               }`}>
                                 {c.isActive ? "Active" : "Disabled"}
                               </span>
-                            </td>
-                            <td className="py-4 px-6 text-xs text-slate-400 font-bold">{new Date(c.createdAt).toLocaleDateString()}</td>
-                            <td className="py-4 px-6">
-                              <div className="flex items-center justify-center">
-                                <button
-                                  onClick={() => setCouponToDelete(c)}
-                                  className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
-                                  title="Delete Coupon"
-                                >
-                                  <FiTrash2 className="h-4.5 w-4.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      );
-                    })()}
-                  </tbody>
-                </table>
-              </div>
+                            </div>
+                            <button
+                              onClick={() => setCouponToDelete(c)}
+                              className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                              title="Delete Coupon"
+                            >
+                              <FiTrash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between pt-1 border-t border-sage/10">
+                            <span className="text-xs font-extrabold text-forest">${c.discount.toFixed(2)} OFF</span>
+                            <span className="text-[10px] text-slate-400 font-bold">{new Date(c.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop Table Layout */}
+                    <div className="hidden md:block overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10">
+                              <th className="py-4 px-6">Code</th>
+                              <th className="py-4 px-6">Discount</th>
+                              <th className="py-4 px-6">Status</th>
+                              <th className="py-4 px-6">Created At</th>
+                              <th className="py-4 px-6 text-center">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
+                            {filteredCoupons.map((c) => (
+                              <tr key={c._id}>
+                                <td className="py-4 px-6 font-mono font-black text-forest-dark">{c.code}</td>
+                                <td className="py-4 px-6 font-extrabold text-forest">${c.discount.toFixed(2)} OFF</td>
+                                <td className="py-4 px-6">
+                                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
+                                    c.isActive ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-50 text-slate-500"
+                                  }`}>
+                                    {c.isActive ? "Active" : "Disabled"}
+                                  </span>
+                                </td>
+                                <td className="py-4 px-6 text-xs text-slate-400 font-bold">{new Date(c.createdAt).toLocaleDateString()}</td>
+                                <td className="py-4 px-6">
+                                  <div className="flex items-center justify-center">
+                                    <button
+                                      onClick={() => setCouponToDelete(c)}
+                                      className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                                      title="Delete Coupon"
+                                    >
+                                      <FiTrash2 className="h-4.5 w-4.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         ) : activeTab === "flags" ? (
@@ -916,6 +1248,325 @@ export default function ManageDashboardPage() {
               </div>
             </div>
           </div>
+        ) : activeTab === "add-plant" ? (
+          /* Add Plant Tab Form */
+          <div className="space-y-6 animate-fadeIn">
+            {addError && (
+              <div className="rounded-xl bg-rose/10 border border-rose/20 px-4 py-3 text-xs font-bold text-rose">
+                {addError}
+              </div>
+            )}
+            {addSuccess && (
+              <div className="rounded-xl bg-forest/10 border border-forest/20 px-4 py-3 text-xs font-bold text-forest">
+                {addSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleAddPlantSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                
+                {/* Left Column: Image and Care Snapshot */}
+                <div className="xl:col-span-1 space-y-6">
+                  <SectionCard icon={FiImage} title="Plant Image">
+                    <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-dashed border-sage/25 bg-sage/5 flex items-center justify-center">
+                      {addForm.image ? (
+                        <img src={addForm.image} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 text-forest/30 p-6 text-center">
+                          <FiImage className="h-12 w-12" />
+                          <span className="text-xs font-bold">No image yet</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <input
+                      ref={addPhotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAddPlantPhotoUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addPhotoInputRef.current?.click()}
+                      disabled={addUploadingPhoto}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-sage/25 bg-sage/10 px-4 py-3 text-sm font-bold text-forest hover:bg-sage/20 transition-all cursor-pointer disabled:opacity-60"
+                    >
+                      {addUploadingPhoto ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-forest border-t-transparent" />
+                      ) : (
+                        <FiUpload className="h-4 w-4" />
+                      )}
+                      {addUploadingPhoto ? "Uploading…" : "Upload from Device"}
+                    </button>
+
+                    <div className="relative">
+                      <FiImage className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-forest/30" />
+                      <input
+                        name="image"
+                        type="url"
+                        value={addForm.image}
+                        onChange={handleAddPlantField}
+                        placeholder="…or paste image URL"
+                        className={addPlantInputClass + " pl-10"}
+                      />
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard icon={FiDroplet} title="Care Snapshot">
+                    <div>
+                      <label className={addPlantLabelClass}>💧 Watering</label>
+                      <SuggestionInput
+                        name="watering"
+                        value={addForm.watering}
+                        onChange={(val) => setAddForm((p) => ({ ...p, watering: val }))}
+                        suggestions={SUGGESTIONS.watering}
+                        placeholder="e.g. Every 2–3 weeks"
+                        className={addPlantInputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={addPlantLabelClass}>☀️ Sunlight</label>
+                      <SuggestionInput
+                        name="sunlight"
+                        value={addForm.sunlight}
+                        onChange={(val) => setAddForm((p) => ({ ...p, sunlight: val }))}
+                        suggestions={SUGGESTIONS.sunlight}
+                        placeholder="e.g. Low to Bright Indirect"
+                        className={addPlantInputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={addPlantLabelClass}>🌡️ Temperature</label>
+                      <SuggestionInput
+                        name="temperature"
+                        value={addForm.temperature}
+                        onChange={(val) => setAddForm((p) => ({ ...p, temperature: val }))}
+                        suggestions={SUGGESTIONS.temperature}
+                        placeholder="e.g. 15°C – 29°C"
+                        className={addPlantInputClass}
+                      />
+                    </div>
+                  </SectionCard>
+                </div>
+
+                {/* Right Column: Basic Info, Care Tips, Common Problems */}
+                <div className="xl:col-span-2 space-y-6">
+                  <SectionCard icon={FiInfo} title="Basic Information">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className={addPlantLabelClass}>Plant Title *</label>
+                        <input
+                          name="title"
+                          required
+                          value={addForm.title}
+                          onChange={handleAddPlantField}
+                          placeholder="e.g. Snake Plant Laurentii"
+                          className={addPlantInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={addPlantLabelClass}>Scientific Name</label>
+                        <input
+                          name="scientificName"
+                          value={addForm.scientificName}
+                          onChange={handleAddPlantField}
+                          placeholder="e.g. Sansevieria trifasciata"
+                          className={addPlantInputClass}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                      <div>
+                        <label className={addPlantLabelClass}>Category</label>
+                        <CustomSelect
+                          name="category"
+                          value={addForm.category}
+                          onChange={(val) => setAddForm((p) => ({ ...p, category: val }))}
+                          options={CATEGORIES}
+                          className={addPlantInputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className={addPlantLabelClass}>Difficulty</label>
+                        <CustomSelect
+                          name="difficulty"
+                          value={addForm.difficulty}
+                          onChange={(val) => setAddForm((p) => ({ ...p, difficulty: val as "Easy" | "Medium" | "Hard" }))}
+                          options={DIFFICULTIES}
+                          className={`${addPlantInputClass} font-bold ${difficultyColor[addForm.difficulty]}`}
+                          optionClassName={(opt) => difficultyColor[opt as "Easy" | "Medium" | "Hard"] || ""}
+                        />
+                      </div>
+                      <div>
+                        <label className={addPlantLabelClass}>Price (USD) *</label>
+                        <input
+                          name="price"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          value={addForm.price}
+                          onChange={handleAddPlantField}
+                          placeholder="29.99"
+                          className={addPlantInputClass}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className={addPlantLabelClass}>
+                        Short Description <span className="normal-case text-slate-400">(shown on card — max 120 chars)</span>
+                      </label>
+                      <input
+                        name="short"
+                        value={addForm.short}
+                        onChange={handleAddPlantField}
+                        maxLength={120}
+                        placeholder="One-line summary shown under the plant name on cards…"
+                        className={addPlantInputClass}
+                      />
+                      <p className="mt-1 text-right text-[10px] text-slate-400">{addForm.short.length}/120</p>
+                    </div>
+
+                    <div>
+                      <label className={addPlantLabelClass}>Full Description</label>
+                      <textarea
+                        name="description"
+                        value={addForm.description}
+                        onChange={handleAddPlantField}
+                        rows={5}
+                        placeholder="Detailed overview — origin, toxicity, potting needs, growth habits…"
+                        className={addPlantInputClass + " resize-none"}
+                      />
+                    </div>
+                  </SectionCard>
+
+                  <SectionCard icon={FiSun} title="Detailed Care Tips">
+                    <div className="space-y-3">
+                      {addDetailedCare.map((tip, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                          <span className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-forest/10 text-[10px] font-black text-forest">
+                            {i + 1}
+                          </span>
+                          <input
+                            value={tip}
+                            onChange={(e) => updateAddPlantCare(i, e.target.value)}
+                            placeholder={`Care tip ${i + 1}…`}
+                            className={addPlantInputClass}
+                          />
+                          {addDetailedCare.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeAddPlantCare(i)}
+                              className="shrink-0 rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition-all cursor-pointer"
+                            >
+                              <FiTrash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addAddPlantCare}
+                      className="flex items-center gap-1.5 text-xs font-bold text-forest hover:text-forest-dark transition-colors cursor-pointer"
+                    >
+                      <FiPlus className="h-3.5 w-3.5" /> Add Care Tip
+                    </button>
+                  </SectionCard>
+
+                  <SectionCard icon={FiAlertTriangle} title="Common Problems">
+                    <div className="space-y-4">
+                      {addCommonProblems.map((p, i) => (
+                        <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-sage/5 border border-sage/15 relative">
+                          {addCommonProblems.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeAddPlantProblem(i)}
+                              className="absolute top-3 right-3 rounded-lg p-1.5 text-slate-400 hover:text-rose hover:bg-rose/10 transition-all cursor-pointer"
+                            >
+                              <FiTrash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <div>
+                            <label className={addPlantLabelClass}>Problem</label>
+                            <input
+                              value={p.problem}
+                              onChange={(e) => updateAddPlantProblem(i, "problem", e.target.value)}
+                              placeholder="e.g. Mushy leaves or yellowing base"
+                              className={addPlantInputClass}
+                            />
+                          </div>
+                          <div>
+                            <label className={addPlantLabelClass}>Solution</label>
+                            <input
+                              value={p.solution}
+                              onChange={(e) => updateAddPlantProblem(i, "solution", e.target.value)}
+                              placeholder="e.g. Stop watering, improve drainage"
+                              className={addPlantInputClass}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addAddPlantProblem}
+                      className="flex items-center gap-1.5 text-xs font-bold text-forest hover:text-forest-dark transition-colors cursor-pointer"
+                    >
+                      <FiPlus className="h-3.5 w-3.5" /> Add Problem
+                    </button>
+                  </SectionCard>
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-sage/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddForm({
+                      title: "",
+                      scientificName: "",
+                      category: "Foliage",
+                      short: "",
+                      description: "",
+                      price: "",
+                      image: "",
+                      difficulty: "Easy" as "Easy" | "Medium" | "Hard",
+                      watering: "",
+                      sunlight: "",
+                      temperature: "",
+                    });
+                    setAddDetailedCare([""]);
+                    setAddCommonProblems([{ problem: "", solution: "" }]);
+                    setPlantToEdit(null);
+                    setActiveTab("inventory");
+                    sessionStorage.setItem("admin_active_tab", "inventory");
+                  }}
+                  className="px-4 py-2.5 text-xs font-bold text-forest-dark/60 bg-white border border-sage/20 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addSubmitting}
+                  className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-forest rounded-xl hover:bg-forest-dark shadow-sm shadow-forest/20 transition-all cursor-pointer disabled:opacity-60 active:scale-[0.98]"
+                >
+                  {plantToEdit ? (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <FiPlus className="h-4 w-4" />
+                  )}
+                  {addSubmitting ? (plantToEdit ? "Saving…" : "Adding…") : (plantToEdit ? "Save Changes" : "Add Plant")}
+                </button>
+              </div>
+            </form>
+          </div>
         ) : (
           /* Audit Logs Tab */
           <div className="bg-white border border-sage/15 rounded-2xl shadow-sm overflow-hidden animate-fadeIn">
@@ -963,6 +1614,17 @@ export default function ManageDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Add/Edit Plant Submission Confirmation */}
+      <ConfirmModal
+        isOpen={addShowConfirm}
+        title={plantToEdit ? "Save changes to this plant?" : "Add this plant?"}
+        message={plantToEdit ? "This will update the plant catalog details immediately." : "This will publish the plant to the catalog immediately and it will be visible to all users."}
+        confirmLabel={plantToEdit ? "Yes, Save Changes" : "Yes, Add Plant"}
+        cancelLabel="Review Again"
+        onConfirm={handleAddPlantConfirmSubmit}
+        onCancel={() => setAddShowConfirm(false)}
+      />
 
       {/* Delete Plant Confirmation */}
       <ConfirmModal

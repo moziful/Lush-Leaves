@@ -183,41 +183,44 @@ export default function CartPage() {
             {/* Items Column */}
             <div className="lg:col-span-2 space-y-4">
               {cart.map((item) => (
-                <div key={item.plantId} className="bg-white p-4.5 rounded-2xl border border-sage/15 shadow-sm flex items-center gap-4 hover:border-forest/20 transition-all">
-                  <div className="relative h-20 w-20 rounded-xl overflow-hidden border border-sage/15 bg-sage/5 shrink-0">
-                    <Image src={item.image} alt={item.title} fill className="object-cover" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-black text-forest-dark truncate">{item.title}</h3>
-                    <p className="text-xs text-forest font-bold pt-1">${item.price.toFixed(2)} each</p>
-                  </div>
-                  {/* Quantity Actions */}
-                  <div className="flex items-center gap-2 border border-sage/15 rounded-lg px-2 py-1 bg-sage/5">
+                <div key={item.plantId} className="bg-white p-4.5 rounded-2xl border border-sage/15 shadow-sm hover:border-forest/20 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-20 w-20 rounded-xl overflow-hidden border border-sage/15 bg-sage/5 shrink-0">
+                      <Image src={item.image} alt={item.title} fill className="object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-black text-forest-dark truncate">{item.title}</h3>
+                      <p className="text-xs text-forest font-bold pt-1">${item.price.toFixed(2)} each</p>
+                    </div>
+                    {/* Delete — always visible top-right */}
                     <button
-                      onClick={() => updateQuantity(item.plantId, -1)}
-                      className="text-forest hover:bg-forest/10 px-1.5 rounded text-xs font-black cursor-pointer"
+                      onClick={() => removeItem(item.plantId)}
+                      className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer shrink-0"
                     >
-                      -
-                    </button>
-                    <span className="text-xs font-black text-forest-dark min-w-[20px] text-center">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.plantId, 1)}
-                      className="text-forest hover:bg-forest/10 px-1.5 rounded text-xs font-black cursor-pointer"
-                    >
-                      +
+                      <FiTrash2 className="h-4.5 w-4.5" />
                     </button>
                   </div>
-                  {/* Total price for item */}
-                  <p className="text-sm font-black text-forest-dark shrink-0 min-w-[60px] text-right">
-                    ${(item.price * item.quantity).toFixed(2)}
-                  </p>
-                  {/* Delete Item */}
-                  <button
-                    onClick={() => removeItem(item.plantId)}
-                    className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
-                  >
-                    <FiTrash2 className="h-4.5 w-4.5" />
-                  </button>
+                  {/* Bottom row: Quantity + Line Total */}
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-sage/10">
+                    <div className="flex items-center gap-2 border border-sage/15 rounded-lg px-2 py-1 bg-sage/5">
+                      <button
+                        onClick={() => updateQuantity(item.plantId, -1)}
+                        className="text-forest hover:bg-forest/10 px-1.5 rounded text-xs font-black cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="text-xs font-black text-forest-dark min-w-[20px] text-center">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.plantId, 1)}
+                        className="text-forest hover:bg-forest/10 px-1.5 rounded text-xs font-black cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="text-sm font-black text-forest-dark">
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
