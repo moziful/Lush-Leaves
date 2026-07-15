@@ -121,10 +121,9 @@ export default function CartPage() {
 
     setCheckoutLoading(true);
     try {
-      const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      const totalAmount = Math.max(0, subtotal + shippingCost - discount);
+      const origin = window.location.origin;
 
-      const res = await fetch("/api/orders", {
+      const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -132,27 +131,26 @@ export default function CartPage() {
         },
         body: JSON.stringify({
           items: cart,
-          total: totalAmount,
           shippingCharge: shippingCost,
           appliedPromo: appliedPromo || null,
-          discount: discount
+          discount: discount,
+          origin
         })
       });
 
       if (res.ok) {
-        setSuccess("Order placed successfully! Cleaning up your cart...");
-        saveCart([]);
-        setAppliedPromo("");
-        setDiscount(0);
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1500);
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error("Stripe URL not returned from server");
+        }
       } else {
-        const errData = await res.json();
-        setError(errData.message || "Failed to submit checkout order.");
+        const errData = await res.json().catch(() => null);
+        setError(errData?.message || "Failed to initialize Stripe checkout.");
       }
-    } catch {
-      setError("An unexpected error occurred during checkout.");
+    } catch (err: any) {
+      setError(err?.message || "An unexpected error occurred during checkout.");
     } finally {
       setCheckoutLoading(false);
     }
