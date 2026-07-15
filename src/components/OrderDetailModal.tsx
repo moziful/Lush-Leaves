@@ -26,9 +26,11 @@ interface Order {
 interface OrderDetailModalProps {
   order: Order | null;
   onClose: () => void;
+  onStatusUpdate?: (orderId: string, status: string) => void;
+  isAdmin?: boolean;
 }
 
-export default function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
+export default function OrderDetailModal({ order, onClose, onStatusUpdate, isAdmin = false }: OrderDetailModalProps) {
   useEffect(() => {
     if (order) {
       document.body.style.overflow = "hidden";
@@ -97,13 +99,32 @@ export default function OrderDetailModal({ order, onClose }: OrderDetailModalPro
                 <span className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold flex items-center gap-1"><FiClock /> Ordered On</span>
                 <p>{new Date(order.createdAt).toLocaleString()}</p>
               </div>
-              <div className="bg-white p-3.5 rounded-xl border border-sage/10 space-y-1">
-                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold flex items-center gap-1"><FiActivity /> Delivery State</span>
-                <p>
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${currentStatus}`}>
-                    {order.status}
-                  </span>
-                </p>
+              <div className="bg-white p-3.5 rounded-xl border border-sage/10 space-y-1 flex flex-col justify-between">
+                <div>
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold flex items-center gap-1"><FiActivity /> Delivery State</span>
+                  <p className="mt-1">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${currentStatus}`}>
+                      {order.status}
+                    </span>
+                  </p>
+                </div>
+                {isAdmin && onStatusUpdate && (
+                  <div className="mt-2.5 pt-2.5 border-t border-sage/10 flex flex-wrap gap-1">
+                    {["Pending", "Processing", "Shipped", "Delivered"].map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => onStatusUpdate(order._id, st as any)}
+                        className={`px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded border transition cursor-pointer ${
+                          order.status === st
+                            ? "bg-forest text-white border-forest"
+                            : "bg-white text-slate-400 border-slate-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        {st.slice(0, 4)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

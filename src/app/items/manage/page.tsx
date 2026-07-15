@@ -1012,6 +1012,14 @@ export default function ManageDashboardPage() {
       <OrderDetailModal
         order={selectedOrder}
         onClose={() => setSelectedOrder(null)}
+        isAdmin={true}
+        onStatusUpdate={(orderId, status) => {
+          handleOrderStatusUpdate(orderId, status);
+          // Sync state locally to update details modal view immediately
+          if (selectedOrder && selectedOrder._id === orderId) {
+            setSelectedOrder({ ...selectedOrder, status: status as any });
+          }
+        }}
       />
     </div>
   );
