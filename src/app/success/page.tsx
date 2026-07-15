@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { FiCheckCircle, FiShoppingBag, FiArrowRight, FiActivity } from "react-icons/fi";
+import { FiCheckCircle, FiArrowRight, FiActivity } from "react-icons/fi";
 
-export default function SuccessPage() {
+function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
@@ -139,7 +139,20 @@ export default function SuccessPage() {
             </div>
           </div>
         )}
+  );
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white border border-sage/15 rounded-3xl p-8 shadow-xl text-center space-y-6">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-forest border-t-transparent mx-auto" />
+          <p className="text-sm font-bold text-forest-dark">Loading checkout verification details...</p>
+        </div>
       </div>
-    </div>
+    }>
+      <SuccessContent />
+    </Suspense>
   );
 }
