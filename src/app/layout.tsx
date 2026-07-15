@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { ToastProvider } from "@/context/ToastContext";
+import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -26,11 +27,13 @@ export default function RootLayout({
       className={`${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream text-slate-800 font-sans">
-        <ToastProvider>
-          <Navbar />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-        </ToastProvider>
+        <GoogleAuthProvider>
+          <ToastProvider>
+            <Navbar />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </ToastProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   );

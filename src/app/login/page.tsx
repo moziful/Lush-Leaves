@@ -8,6 +8,8 @@ import { FcGoogle } from "react-icons/fc";
 
 import { useToast } from "@/context/ToastContext";
 
+import { GoogleLogin } from "@react-oauth/google";
+
 export default function Login() {
   const router = useRouter();
   const { showToast } = useToast();
@@ -59,9 +61,40 @@ export default function Login() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    window.location.href = "/api/auth/google";
+  const verifyGoogleCredential = async (credential: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Google verification failed.");
+      
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
+
+      showToast(`Logged in successfully as ${data.user.name || "user"}!`, "success");
+
+      if (data.user.role === "admin") {
+        router.push("/items/manage");
+      } else {
+        router.push("/explore");
+      }
+      router.refresh();
+    } catch (err: any) {
+      const errMsg = err.message || "Google sign-in failed.";
+      setError(errMsg);
+      showToast(errMsg, "error");
+    } finally {
+      setLoading(false);
+    }
   };
+
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,14 +195,24 @@ export default function Login() {
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-[0.98] shadow-sm cursor-pointer"
-        >
-          <FcGoogle className="h-5 w-5" />
-          Continue with Google
-        </button>
+        <div className="flex justify-center w-full">
+          <div className="w-full max-w-[280px]">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                if (credentialResponse.credential) {
+                  verifyGoogleCredential(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                showToast("Google sign-in failed.", "error");
+              }}
+              theme="outline"
+              size="large"
+              shape="pill"
+              width="280"
+            />
+          </div>
+        </div>
 
         <p className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
           Don&apos;t have an account?{" "}
