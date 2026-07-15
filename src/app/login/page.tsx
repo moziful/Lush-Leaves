@@ -70,7 +70,16 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credential }),
       });
-      const data = await res.json();
+      
+      let data: any;
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(text || "A server error occurred.");
+      }
+
       if (!res.ok) throw new Error(data.message || "Google verification failed.");
       
       localStorage.setItem("token", data.token);
