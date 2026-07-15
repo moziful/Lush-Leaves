@@ -17,6 +17,7 @@ import DashboardTabs from "@/components/DashboardTabs";
 import OrderDetailModal from "@/components/OrderDetailModal";
 import SuggestionInput from "@/components/SuggestionInput";
 import CustomSelect from "@/components/CustomSelect";
+import { useToast } from "@/context/ToastContext";
 
 interface CommonProblem { problem: string; solution: string; }
 
@@ -126,6 +127,7 @@ type TabType = "metrics" | "inventory" | "users" | "orders" | "coupons" | "flags
 
 export default function ManageDashboardPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("metrics");
   const [authChecking, setAuthChecking] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -285,10 +287,13 @@ export default function ManageDashboardPage() {
       });
       if (res.ok) {
         setPlants((prev) => prev.filter((p) => p.id !== plantToDelete.id));
+        showToast(`Plant "${plantToDelete.title}" deleted successfully.`, "success");
         setPlantToDelete(null);
+      } else {
+        throw new Error();
       }
     } catch {
-      setError("Could not delete plant.");
+      showToast("Could not delete plant.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -305,10 +310,13 @@ export default function ManageDashboardPage() {
       });
       if (res.ok) {
         setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+        showToast(`User account "${userToDelete.name || userToDelete.email}" deleted successfully.`, "success");
         setUserToDelete(null);
+      } else {
+        throw new Error();
       }
     } catch {
-      setError("Could not delete user.");
+      showToast("Could not delete user.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -332,10 +340,13 @@ export default function ManageDashboardPage() {
         setUsers((prev) =>
           prev.map((u) => (u.id === user.id ? { ...u, role: targetRole } : u))
         );
+        showToast(`Access role for "${user.name || user.email}" changed to ${targetRole.toUpperCase()}`, "success");
         setUserToPromote(null);
+      } else {
+        throw new Error();
       }
     } catch {
-      setError("Could not change role.");
+      showToast("Could not change role.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -353,12 +364,13 @@ export default function ManageDashboardPage() {
       });
       if (res.ok) {
         setCoupons((prev) => prev.filter((c) => c._id !== id));
+        showToast(`Promo code "${couponToDelete.code}" deleted.`, "success");
         setCouponToDelete(null);
       } else {
         throw new Error("Failed to delete promo code");
       }
     } catch (err: any) {
-      setError(err.message || "Could not delete promo code");
+      showToast(err.message || "Could not delete promo code", "error");
     } finally {
       setActionLoading(false);
     }
@@ -379,9 +391,12 @@ export default function ManageDashboardPage() {
         setOrders((prev) =>
           prev.map((o) => (o._id === orderId ? { ...o, status: status as any } : o))
         );
+        showToast(`Order status updated to: ${status}`, "success");
+      } else {
+        throw new Error();
       }
     } catch {
-      setError("Failed to update status");
+      showToast("Failed to update status", "error");
     }
   };
 
@@ -401,10 +416,13 @@ export default function ManageDashboardPage() {
       if (res.ok) {
         setNewCouponCode("");
         setNewCouponDiscount("");
+        showToast(`Promo code "${newCouponCode}" created successfully!`, "success");
         loadData();
+      } else {
+        throw new Error();
       }
     } catch {
-      setError("Failed to create promo code");
+      showToast("Failed to create promo code", "error");
     }
   };
 
@@ -425,10 +443,11 @@ export default function ManageDashboardPage() {
       const data = await res.json();
       if (data.success && data.url) {
         setAddForm((prev) => ({ ...prev, image: data.url }));
+        showToast("Image uploaded successfully!", "success");
       } else {
-        setAddError(data.message || "Image upload failed.");
+        showToast(data.message || "Image upload failed.", "error");
       }
-    } catch { setAddError("Network error during photo upload."); }
+    } catch { showToast("Network error during photo upload.", "error"); }
     finally {
       setAddUploadingPhoto(false);
       if (addPhotoInputRef.current) addPhotoInputRef.current.value = "";
@@ -493,7 +512,8 @@ export default function ManageDashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || `Failed to ${plantToEdit ? "update" : "create"} plant.`);
-      setAddSuccess(`Plant ${plantToEdit ? "updated" : "added"} successfully!`);
+      
+      showToast(`Plant ${plantToEdit ? "updated" : "added"} successfully!`, "success");
       
       setAddForm({
         title: "",
@@ -513,13 +533,12 @@ export default function ManageDashboardPage() {
       setPlantToEdit(null);
       
       setTimeout(() => {
-        setAddSuccess("");
         loadData();
         setActiveTab("inventory");
         sessionStorage.setItem("admin_active_tab", "inventory");
-      }, 1500);
+      }, 1000);
     } catch (err: any) {
-      setAddError(err.message || "Something went wrong.");
+      showToast(err.message || "Something went wrong.", "error");
     } finally { setAddSubmitting(false); }
   };
 
@@ -536,9 +555,12 @@ export default function ManageDashboardPage() {
       });
       if (res.ok) {
         setConfig(newConfig);
+        showToast("System settings updated successfully.", "success");
+      } else {
+        throw new Error();
       }
     } catch {
-      setError("Failed to save feature flags");
+      showToast("Failed to save feature flags", "error");
     }
   };
 
@@ -611,12 +633,6 @@ export default function ManageDashboardPage() {
                 </button>
               )}
             </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="rounded-xl bg-rose/10 border border-rose/25 px-4 py-3 text-xs font-bold text-rose animate-fadeIn">
-            {error}
           </div>
         )}
 
@@ -1251,17 +1267,6 @@ export default function ManageDashboardPage() {
         ) : activeTab === "add-plant" ? (
           /* Add Plant Tab Form */
           <div className="space-y-6 animate-fadeIn">
-            {addError && (
-              <div className="rounded-xl bg-rose/10 border border-rose/20 px-4 py-3 text-xs font-bold text-rose">
-                {addError}
-              </div>
-            )}
-            {addSuccess && (
-              <div className="rounded-xl bg-forest/10 border border-forest/20 px-4 py-3 text-xs font-bold text-forest">
-                {addSuccess}
-              </div>
-            )}
-
             <form onSubmit={handleAddPlantSubmit} className="space-y-6">
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 

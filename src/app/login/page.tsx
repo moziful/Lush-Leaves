@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import { MdEmail, MdLock, MdVisibility, MdVisibilityOff, MdErrorOutline } from "react-icons/md";
 import { FcGoogle } from "react-icons/fc";
 
+import { useToast } from "@/context/ToastContext";
+
 export default function Login() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,6 +42,8 @@ export default function Login() {
 
       document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
 
+      showToast(`Welcome back, ${data.user.name || "user"}!`, "success");
+
       if (data.user.role === "admin") {
         router.push("/items/manage");
       } else {
@@ -46,7 +51,9 @@ export default function Login() {
       }
       router.refresh();
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      const errMsg = err.message || "An unexpected error occurred.";
+      setError(errMsg);
+      showToast(errMsg, "error");
     } finally {
       setLoading(false);
     }

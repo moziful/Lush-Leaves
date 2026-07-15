@@ -7,8 +7,11 @@ import { MdEmail, MdLock, MdVisibility, MdVisibilityOff, MdErrorOutline } from "
 import { FiUser, FiCamera } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 
+import { useToast } from "@/context/ToastContext";
+
 export default function Register() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -55,8 +58,11 @@ export default function Register() {
       }
 
       setUploadedImageUrl(resData.url);
+      showToast("Profile image uploaded successfully!", "success");
     } catch (err: any) {
-      setError(err.message || "Image upload failed. You can still register without an image.");
+      const errMsg = err.message || "Image upload failed. You can still register without an image.";
+      setError(errMsg);
+      showToast(errMsg, "error");
       setImagePreview("");
     } finally {
       setUploadingImage(false);
@@ -73,17 +79,23 @@ export default function Register() {
     setError("");
 
     if (formData.name.trim().length === 0) {
-      setError("Name is required.");
+      const msg = "Name is required.";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
     if (formData.password.length < 8 || formData.password.length > 32) {
-      setError("Password must be between 8 and 32 characters long.");
+      const msg = "Password must be between 8 and 32 characters long.";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      const msg = "Passwords do not match.";
+      setError(msg);
+      showToast(msg, "error");
       return;
     }
 
@@ -109,6 +121,7 @@ export default function Register() {
       }
 
       setSuccess(true);
+      showToast("Account created successfully!", "success");
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
@@ -119,7 +132,9 @@ export default function Register() {
         router.refresh();
       }, 1000);
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+      const errMsg = err.message || "An unexpected error occurred.";
+      setError(errMsg);
+      showToast(errMsg, "error");
       setLoading(false);
     }
   };

@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ToastProvider } from "@/context/ToastContext";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -25,10 +26,13 @@ export default function RootLayout({
       className={`${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream text-slate-800 font-sans">
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        <ToastProvider>
+          <Navbar />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+        </ToastProvider>
       </body>
     </html>
   );
 }
+
