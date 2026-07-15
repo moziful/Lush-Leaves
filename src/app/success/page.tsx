@@ -139,6 +139,8 @@ function SuccessContent() {
             </div>
           </div>
         )}
+      </div>
+    </div>
   );
 }
 
