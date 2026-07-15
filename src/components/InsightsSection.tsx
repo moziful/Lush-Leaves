@@ -14,7 +14,7 @@ const PlantCareChart = dynamic(() => import("./PlantCareChart"), {
 
 export default function InsightsSection() {
   return (
-    <section className="bg-cream py-20 border-t border-sage/10">
+    <section className="bg-cream py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
 

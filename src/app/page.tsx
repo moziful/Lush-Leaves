@@ -1,5 +1,6 @@
 import HeroSection from "@/components/HeroSection";
 import FeaturedPlants from "@/components/FeaturedPlants";
+import PlantFinderQuiz from "@/components/PlantFinderQuiz";
 import InsightsSection from "@/components/InsightsSection";
 import GeneralCareSection from "@/components/GeneralCareSection";
 
@@ -9,6 +10,7 @@ export default function Home() {
       <HeroSection />
       <FeaturedPlants />
       <InsightsSection />
+      <PlantFinderQuiz />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-20">
         <GeneralCareSection />
       </div>

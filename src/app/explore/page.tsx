@@ -70,6 +70,14 @@ function ExploreContent() {
     if (search) {
       setSearchQuery(search);
     }
+    const cat = searchParams.get("category");
+    if (cat) {
+      setSelectedCategory(cat);
+    }
+    const diff = searchParams.get("difficulty");
+    if (diff) {
+      setSelectedDifficulties(diff.split(","));
+    }
     const plantId = searchParams.get("plantId");
     if (plantId) {
       const match = plants.find((p) => p.id === plantId);
