@@ -58,6 +58,11 @@ interface Order {
 interface SystemConfig {
   maintenanceMode: boolean;
   checkoutEnabled: boolean;
+  freeShippingPromo: boolean;
+  freeShippingExpiry: string | null;
+  seasonalBanner: boolean;
+  seasonalBannerExpiry: string | null;
+  emailNotifications: boolean;
 }
 
 type TabType = "metrics" | "inventory" | "users" | "orders" | "coupons" | "flags" | "logs";
@@ -75,7 +80,15 @@ export default function ManageDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [config, setConfig] = useState<SystemConfig>({ maintenanceMode: false, checkoutEnabled: true });
+  const [config, setConfig] = useState<SystemConfig>({
+    maintenanceMode: false,
+    checkoutEnabled: true,
+    freeShippingPromo: false,
+    freeShippingExpiry: null,
+    seasonalBanner: false,
+    seasonalBannerExpiry: null,
+    emailNotifications: true
+  });
 
   // Coupon form state
   const [newCouponCode, setNewCouponCode] = useState("");
@@ -88,6 +101,15 @@ export default function ManageDashboardPage() {
   const [userToPromote, setUserToPromote] = useState<{ user: User; targetRole: string } | null>(null);
 
   const [actionLoading, setActionLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    // Restore active tab from sessionStorage if present
+    const savedTab = sessionStorage.getItem("admin_active_tab");
+    if (savedTab && ["metrics", "inventory", "users", "orders", "coupons", "flags", "logs"].includes(savedTab)) {
+      setActiveTab(savedTab as TabType);
+    }
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -112,6 +134,12 @@ export default function ManageDashboardPage() {
     setAuthChecking(false);
     loadData();
   }, [router, activeTab]);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchQuery("");
+    sessionStorage.setItem("admin_active_tab", tab);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -371,7 +399,7 @@ export default function ManageDashboardPage() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
+                onClick={() => handleTabChange(tab.id as TabType)}
                 className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all cursor-pointer ${
                   isActive
                     ? "border-forest text-forest"
@@ -383,6 +411,30 @@ export default function ManageDashboardPage() {
             );
           })}
         </div>
+
+        {/* Search Bar Input Panel (Shown on all tabs except Metrics and Flags) */}
+        {!["metrics", "flags"].includes(activeTab) && (
+          <div className="flex justify-end animate-fadeIn">
+            <div className="relative w-full max-w-md">
+              <input
+                type="text"
+                placeholder={`Search ${activeTab}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-xl border border-sage/20 bg-white px-4 py-3 pr-10 text-xs font-bold text-forest-dark outline-none focus:border-forest shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+                  title="Clear Search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="rounded-xl bg-rose/10 border border-rose/25 px-4 py-3 text-xs font-bold text-rose animate-fadeIn">
@@ -489,204 +541,239 @@ export default function ManageDashboardPage() {
             </div>
           </div>
         ) : activeTab === "inventory" ? (
-          plants.length === 0 ? (
-            <div className="rounded-2xl border border-sage/15 bg-white py-20 px-4 text-center space-y-4 shadow-sm animate-fadeIn">
-              <p className="text-base font-bold text-forest-dark/70">The catalog is empty.</p>
-              <Link href="/items/add" className="inline-flex items-center gap-1.5 rounded-xl bg-forest px-5 py-2.5 text-xs font-bold text-white cursor-pointer">
-                <FiPlus /> Add Plant
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10">
-                      <th className="py-4 px-6">Image</th>
-                      <th className="py-4 px-6">Title</th>
-                      <th className="py-4 px-6">Category</th>
-                      <th className="py-4 px-6">Difficulty</th>
-                      <th className="py-4 px-6">Watering</th>
-                      <th className="py-4 px-6">Price</th>
-                      <th className="py-4 px-6 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
-                    {plants.map((plant) => (
-                      <tr key={plant.id} className="hover:bg-cream/40 transition">
-                        <td className="py-4 px-6">
-                          <div className="relative h-12 w-12 rounded-xl overflow-hidden border border-sage/15 bg-sage/5">
-                            <Image src={plant.image} alt={plant.title} fill className="object-cover" />
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 font-bold text-forest-dark">{plant.title}</td>
-                        <td className="py-4 px-6">
-                          <span className="rounded-full bg-sage/10 px-2.5 py-1 text-xs font-bold text-forest border border-sage/20">
-                            {plant.category}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-bold border ${
-                            difficultyColor[plant.difficulty as "Easy" | "Medium" | "Hard"] || "text-slate-600 bg-slate-50 border-slate-100"
-                          }`}>
-                            {plant.difficulty}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-xs text-slate-500 font-medium">{plant.watering || "—"}</td>
-                        <td className="py-4 px-6 font-black text-forest">${plant.price.toFixed(2)}</td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center justify-center gap-3">
-                            <button
-                              onClick={() => setPlantToDelete(plant)}
-                              className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
-                              title="Delete Plant"
-                            >
-                              <FiTrash2 className="h-4.5 w-4.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          (() => {
+            const filteredPlants = plants.filter((plant) =>
+              plant.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              plant.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              plant.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            return filteredPlants.length === 0 ? (
+              <div className="rounded-2xl border border-sage/15 bg-white py-20 px-4 text-center space-y-4 shadow-sm animate-fadeIn">
+                <p className="text-base font-bold text-forest-dark/70">
+                  {plants.length === 0 ? "The catalog is empty." : "No matching plants found."}
+                </p>
+                {plants.length === 0 && (
+                  <Link href="/items/add" className="inline-flex items-center gap-1.5 rounded-xl bg-forest px-5 py-2.5 text-xs font-bold text-white cursor-pointer">
+                    <FiPlus /> Add Plant
+                  </Link>
+                )}
               </div>
-            </div>
-          )
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse flex flex-col">
+                    <thead>
+                      <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10 flex w-full">
+                        <th className="py-4 px-6 w-1/12 shrink-0">Image</th>
+                        <th className="py-4 px-6 w-3/12 shrink-0">Title</th>
+                        <th className="py-4 px-6 w-2/12 shrink-0">Category</th>
+                        <th className="py-4 px-6 w-2/12 shrink-0">Difficulty</th>
+                        <th className="py-4 px-6 w-2/12 shrink-0">Watering</th>
+                        <th className="py-4 px-6 w-1/12 shrink-0">Price</th>
+                        <th className="py-4 px-6 w-1/12 shrink-0 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
+                      {filteredPlants.map((plant) => (
+                        <tr key={plant.id} className="hover:bg-cream/40 transition flex w-full items-center">
+                          <td className="py-4 px-6 w-1/12 shrink-0">
+                            <div className="relative h-12 w-12 rounded-xl overflow-hidden border border-sage/15 bg-sage/5">
+                              <Image src={plant.image} alt={plant.title} fill className="object-cover" />
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 w-3/12 shrink-0 font-bold text-forest-dark truncate">{plant.title}</td>
+                          <td className="py-4 px-6 w-2/12 shrink-0">
+                            <span className="rounded-full bg-sage/10 px-2.5 py-1 text-xs font-bold text-forest border border-sage/20">
+                              {plant.category}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 w-2/12 shrink-0">
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-bold border ${
+                              difficultyColor[plant.difficulty as "Easy" | "Medium" | "Hard"] || "text-slate-600 bg-slate-50 border-slate-100"
+                            }`}>
+                              {plant.difficulty}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 w-2/12 shrink-0 text-xs text-slate-500 font-medium truncate">{plant.watering || "—"}</td>
+                          <td className="py-4 px-6 w-1/12 shrink-0 font-black text-forest">${plant.price.toFixed(2)}</td>
+                          <td className="py-4 px-6 w-1/12 shrink-0">
+                            <div className="flex items-center justify-center gap-3">
+                              <button
+                                onClick={() => setPlantToDelete(plant)}
+                                className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                                title="Delete Plant"
+                              >
+                                <FiTrash2 className="h-4.5 w-4.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()
         ) : activeTab === "users" ? (
-          <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10">
-                    <th className="py-4 px-6">Profile</th>
-                    <th className="py-4 px-6">Name</th>
-                    <th className="py-4 px-6">Email Address</th>
-                    <th className="py-4 px-6">Access Level</th>
-                    <th className="py-4 px-6 text-center">Change Role</th>
-                    <th className="py-4 px-6 text-center">Remove</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-cream/40 transition">
-                      <td className="py-4 px-6">
-                        {user.imageUrl ? (
-                          <div className="relative h-10 w-10 rounded-full overflow-hidden border border-sage/15 bg-sage/5">
-                            <Image src={user.imageUrl} alt={user.name} fill className="object-cover" />
-                          </div>
-                        ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/10 border border-sage/20 text-xs font-black text-forest">
-                            {user.name ? user.name.slice(0, 2).toUpperCase() : user.email.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 font-bold text-forest-dark">{user.name || "—"}</td>
-                      <td className="py-4 px-6 text-slate-500 font-medium">{user.email}</td>
-                      <td className="py-4 px-6">
-                        <RoleBadge role={user.role} />
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex justify-center gap-1.5">
-                          {user.role === "admin" ? (
-                            <button
-                              onClick={() => setUserToPromote({ user, targetRole: "user" })}
-                              className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
-                            >
-                              Demote to User
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setUserToPromote({ user, targetRole: "admin" })}
-                              className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-forest bg-forest/5 hover:bg-forest hover:text-white border border-forest/15 transition cursor-pointer"
-                            >
-                              Promote to Admin
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center">
-                          <button
-                            onClick={() => setUserToDelete(user)}
-                            className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
-                            title="Delete Account"
-                          >
-                            <FiTrash2 className="h-4.5 w-4.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          (() => {
+            const filteredUsers = users.filter((u) =>
+              (u.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+              u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              u.role.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            return filteredUsers.length === 0 ? (
+              <div className="rounded-2xl border border-sage/15 bg-white py-20 px-4 text-center shadow-sm animate-fadeIn">
+                <p className="text-base font-bold text-forest-dark/70">
+                  {users.length === 0 ? "No registered user accounts found." : "No matching user accounts found."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse flex flex-col">
+                    <thead>
+                      <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10 flex w-full">
+                        <th className="py-4 px-6 w-1/12 shrink-0">Profile</th>
+                        <th className="py-4 px-6 w-2/12 shrink-0">Name</th>
+                        <th className="py-4 px-6 w-3/12 shrink-0">Email Address</th>
+                        <th className="py-4 px-6 w-2/12 shrink-0">Access Level</th>
+                        <th className="py-4 px-6 w-3/12 shrink-0 text-center">Change Role</th>
+                        <th className="py-4 px-6 w-1/12 shrink-0 text-center">Remove</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
+                      {filteredUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-cream/40 transition flex w-full items-center">
+                          <td className="py-4 px-6 w-1/12 shrink-0">
+                            {user.imageUrl ? (
+                              <div className="relative h-10 w-10 rounded-full overflow-hidden border border-sage/15 bg-sage/5">
+                                <Image src={user.imageUrl} alt={user.name} fill className="object-cover" />
+                              </div>
+                            ) : (
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-forest/10 border border-sage/20 text-xs font-black text-forest">
+                                {user.name ? user.name.slice(0, 2).toUpperCase() : user.email.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-4 px-6 w-2/12 shrink-0 font-bold text-forest-dark truncate">{user.name || "—"}</td>
+                          <td className="py-4 px-6 w-3/12 shrink-0 text-slate-500 font-medium truncate">{user.email}</td>
+                          <td className="py-4 px-6 w-2/12 shrink-0">
+                            <RoleBadge role={user.role} />
+                          </td>
+                          <td className="py-4 px-6 w-3/12 shrink-0">
+                            <div className="flex justify-center gap-1.5">
+                              {user.role === "admin" ? (
+                                <button
+                                  onClick={() => setUserToPromote({ user, targetRole: "user" })}
+                                  className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                                >
+                                  Demote to User
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setUserToPromote({ user, targetRole: "admin" })}
+                                  className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-forest bg-forest/5 hover:bg-forest hover:text-white border border-forest/15 transition cursor-pointer"
+                                >
+                                  Promote to Admin
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 w-1/12 shrink-0">
+                            <div className="flex items-center justify-center">
+                              <button
+                                onClick={() => setUserToDelete(user)}
+                                className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                                title="Delete Account"
+                              >
+                                <FiTrash2 className="h-4.5 w-4.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()
         ) : activeTab === "orders" ? (
           /* Orders Queue Tab */
-          orders.length === 0 ? (
-            <div className="rounded-2xl border border-sage/15 bg-white py-20 px-4 text-center shadow-sm animate-fadeIn">
-              <p className="text-base font-bold text-forest-dark/70">No customer checkout orders recorded.</p>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10">
-                      <th className="py-4 px-6">Order ID</th>
-                      <th className="py-4 px-6">Customer</th>
-                      <th className="py-4 px-6">Items Purchased</th>
-                      <th className="py-4 px-6">Total Amount</th>
-                      <th className="py-4 px-6">Fulfillment Status</th>
-                      <th className="py-4 px-6 text-center">Change State</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
-                    {orders.map((o) => (
-                      <tr key={o._id} className="hover:bg-cream/40 transition">
-                        <td className="py-4 px-6 text-xs text-slate-400 font-mono font-bold">#{o._id.slice(-8)}</td>
-                        <td className="py-4 px-6 font-bold text-forest-dark">{o.userEmail}</td>
-                        <td className="py-4 px-6 text-xs text-slate-500 max-w-xs truncate">
-                          {o.items?.map((item) => `${item.title} (x${item.quantity})`).join(", ") || "No items"}
-                        </td>
-                        <td className="py-4 px-6 font-black text-forest">${(o.total || 0).toFixed(2)}</td>
-                        <td className="py-4 px-6">
-                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
-                            o.status === "Delivered"
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                              : o.status === "Shipped"
-                              ? "bg-blue-50 text-blue-600 border border-blue-100"
-                              : o.status === "Processing"
-                              ? "bg-amber-50 text-amber-600 border border-amber-100"
-                              : "bg-rose-50 text-rose-600 border border-rose-100"
-                          }`}>
-                            {o.status || "Pending"}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex justify-center gap-1">
-                            {["Pending", "Processing", "Shipped", "Delivered"].map((st) => (
-                              <button
-                                key={st}
-                                onClick={() => handleOrderStatusUpdate(o._id, st)}
-                                className={`px-2 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition cursor-pointer ${
-                                  o.status === st
-                                    ? "bg-forest text-white border-forest"
-                                    : "bg-white text-slate-400 border-slate-200 hover:bg-slate-50"
-                                }`}
-                              >
-                                {st.slice(0, 4)}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          (() => {
+            const filteredOrders = orders.filter((o) =>
+              o._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              o.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              o.status.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            return filteredOrders.length === 0 ? (
+              <div className="rounded-2xl border border-sage/15 bg-white py-20 px-4 text-center shadow-sm animate-fadeIn">
+                <p className="text-base font-bold text-forest-dark/70">
+                  {orders.length === 0 ? "No customer checkout orders recorded." : "No matching checkout orders found."}
+                </p>
               </div>
-            </div>
-          )
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-sage/15 bg-white shadow-sm animate-fadeIn">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse flex flex-col">
+                    <thead>
+                      <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10 flex w-full">
+                        <th className="py-4 px-6 w-2/12 shrink-0">Order ID</th>
+                        <th className="py-4 px-6 w-3/12 shrink-0">Customer</th>
+                        <th className="py-4 px-6 w-3/12 shrink-0">Items Purchased</th>
+                        <th className="py-4 px-6 w-1/12 shrink-0">Total Amount</th>
+                        <th className="py-4 px-6 w-1/12 shrink-0">Fulfillment Status</th>
+                        <th className="py-4 px-6 w-2/12 shrink-0 text-center">Change State</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
+                      {filteredOrders.map((o) => (
+                        <tr key={o._id} className="hover:bg-cream/40 transition flex w-full items-center">
+                          <td className="py-4 px-6 w-2/12 shrink-0 text-xs text-slate-400 font-mono font-bold">#{o._id.slice(-8)}</td>
+                          <td className="py-4 px-6 w-3/12 shrink-0 font-bold text-forest-dark truncate">{o.userEmail}</td>
+                          <td className="py-4 px-6 w-3/12 shrink-0 text-xs text-slate-500 truncate">
+                            {o.items?.map((item) => `${item.title} (x${item.quantity})`).join(", ") || "No items"}
+                          </td>
+                          <td className="py-4 px-6 w-1/12 shrink-0 font-black text-forest">${(o.total || 0).toFixed(2)}</td>
+                          <td className="py-4 px-6 w-1/12 shrink-0">
+                            <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                              o.status === "Delivered"
+                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                : o.status === "Shipped"
+                                ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                : o.status === "Processing"
+                                ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                : "bg-rose-50 text-rose-600 border border-rose-100"
+                            }`}>
+                              {o.status || "Pending"}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 w-2/12 shrink-0">
+                            <div className="flex justify-center gap-1">
+                              {["Pending", "Processing", "Shipped", "Delivered"].map((st) => (
+                                <button
+                                  key={st}
+                                  onClick={() => handleOrderStatusUpdate(o._id, st)}
+                                  className={`px-1.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition cursor-pointer ${
+                                    o.status === st
+                                      ? "bg-forest text-white border-forest"
+                                      : "bg-white text-slate-400 border-slate-200 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {st.slice(0, 4)}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()
         ) : activeTab === "coupons" ? (
           /* Promo Codes Tab */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
@@ -706,13 +793,12 @@ export default function ManageDashboardPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5">Discount Rate (%)</label>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5">Discount Amount ($)</label>
                   <input
                     type="number"
                     required
                     min="1"
-                    max="100"
-                    placeholder="e.g. 30"
+                    placeholder="e.g. 10"
                     value={newCouponDiscount}
                     onChange={(e) => setNewCouponDiscount(e.target.value)}
                     className="w-full rounded-xl border border-sage/20 px-3.5 py-2.5 text-xs font-bold text-forest-dark outline-none focus:border-forest"
@@ -738,37 +824,44 @@ export default function ManageDashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-sage/10 text-forest-dark text-sm">
-                    {coupons.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-8 px-6 text-center text-xs font-bold text-slate-400">No promo codes defined yet.</td>
-                      </tr>
-                    ) : (
-                      coupons.map((c) => (
-                        <tr key={c._id}>
-                          <td className="py-4 px-6 font-mono font-black text-forest-dark">{c.code}</td>
-                          <td className="py-4 px-6 font-extrabold text-forest">{c.discount}% OFF</td>
-                          <td className="py-4 px-6">
-                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
-                              c.isActive ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-50 text-slate-500"
-                            }`}>
-                              {c.isActive ? "Active" : "Disabled"}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 text-xs text-slate-400 font-bold">{new Date(c.createdAt).toLocaleDateString()}</td>
-                          <td className="py-4 px-6">
-                            <div className="flex items-center justify-center">
-                              <button
-                                onClick={() => setCouponToDelete(c)}
-                                className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
-                                title="Delete Coupon"
-                              >
-                                <FiTrash2 className="h-4.5 w-4.5" />
-                              </button>
-                            </div>
+                    {(() => {
+                      const filteredCoupons = coupons.filter((c) =>
+                        c.code.toLowerCase().includes(searchQuery.toLowerCase())
+                      );
+                      return filteredCoupons.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 px-6 text-center text-xs font-bold text-slate-400">
+                            {coupons.length === 0 ? "No promo codes defined yet." : "No matching promo codes found."}
                           </td>
                         </tr>
-                      ))
-                    )}
+                      ) : (
+                        filteredCoupons.map((c) => (
+                          <tr key={c._id}>
+                            <td className="py-4 px-6 font-mono font-black text-forest-dark">{c.code}</td>
+                            <td className="py-4 px-6 font-extrabold text-forest">${c.discount.toFixed(2)} OFF</td>
+                            <td className="py-4 px-6">
+                              <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase ${
+                                c.isActive ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-slate-50 text-slate-500"
+                              }`}>
+                                {c.isActive ? "Active" : "Disabled"}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-xs text-slate-400 font-bold">{new Date(c.createdAt).toLocaleDateString()}</td>
+                            <td className="py-4 px-6">
+                              <div className="flex items-center justify-center">
+                                <button
+                                  onClick={() => setCouponToDelete(c)}
+                                  className="rounded-lg p-2 text-slate-400 hover:text-rose hover:bg-rose/5 transition cursor-pointer"
+                                  title="Delete Coupon"
+                                >
+                                  <FiTrash2 className="h-4.5 w-4.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      );
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -813,6 +906,86 @@ export default function ManageDashboardPage() {
                   }`} />
                 </button>
               </div>
+
+              {/* Free Shipping Switch & Timer */}
+              <div className="p-4 rounded-xl bg-sage/5 border border-sage/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-forest-dark uppercase tracking-wider">Free Shipping Promo</h4>
+                    <p className="text-[10px] text-slate-500 font-medium">Automatically overrides checkout deliveries to $0.00.</p>
+                  </div>
+                  <button
+                    onClick={() => handleSaveConfig({ ...config, freeShippingPromo: !config.freeShippingPromo })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      config.freeShippingPromo ? "bg-forest" : "bg-slate-200"
+                    }`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      config.freeShippingPromo ? "translate-x-5" : "translate-x-0"
+                    }`} />
+                  </button>
+                </div>
+                {config.freeShippingPromo && (
+                  <div className="pt-2 border-t border-sage/10 flex items-center gap-4">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 shrink-0">Auto-Turn Off Expiry</label>
+                    <input
+                      type="datetime-local"
+                      value={config.freeShippingExpiry ? new Date(new Date(config.freeShippingExpiry).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+                      onChange={(e) => handleSaveConfig({ ...config, freeShippingExpiry: e.target.value || null })}
+                      className="rounded-lg border border-sage/20 bg-white px-2 py-1 text-xs font-bold text-forest-dark outline-none focus:border-forest"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Seasonal Banner Switch & Timer */}
+              <div className="p-4 rounded-xl bg-sage/5 border border-sage/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-black text-forest-dark uppercase tracking-wider">Seasonal Marketing Banner</h4>
+                    <p className="text-[10px] text-slate-500 font-medium">Display active sale notification strip at page header bars.</p>
+                  </div>
+                  <button
+                    onClick={() => handleSaveConfig({ ...config, seasonalBanner: !config.seasonalBanner })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                      config.seasonalBanner ? "bg-forest" : "bg-slate-200"
+                    }`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      config.seasonalBanner ? "translate-x-5" : "translate-x-0"
+                    }`} />
+                  </button>
+                </div>
+                {config.seasonalBanner && (
+                  <div className="pt-2 border-t border-sage/10 flex items-center gap-4">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 shrink-0">Auto-Turn Off Expiry</label>
+                    <input
+                      type="datetime-local"
+                      value={config.seasonalBannerExpiry ? new Date(new Date(config.seasonalBannerExpiry).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+                      onChange={(e) => handleSaveConfig({ ...config, seasonalBannerExpiry: e.target.value || null })}
+                      className="rounded-lg border border-sage/20 bg-white px-2 py-1 text-xs font-bold text-forest-dark outline-none focus:border-forest"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Email Notifications */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-sage/5 border border-sage/10">
+                <div>
+                  <h4 className="text-xs font-black text-forest-dark uppercase tracking-wider">Dispatch System Emails</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Trigger confirmation receipt emails on transactions.</p>
+                </div>
+                <button
+                  onClick={() => handleSaveConfig({ ...config, emailNotifications: !config.emailNotifications })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                    config.emailNotifications ? "bg-forest" : "bg-slate-200"
+                  }`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    config.emailNotifications ? "translate-x-5" : "translate-x-0"
+                  }`} />
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -823,27 +996,41 @@ export default function ManageDashboardPage() {
               <h3 className="text-xs font-black uppercase tracking-wider">Administrative Event Log</h3>
             </div>
             <div className="divide-y divide-sage/10 max-h-[500px] overflow-y-auto">
-              {logs.length === 0 ? (
-                <div className="py-8 px-6 text-center text-xs font-bold text-slate-400">No actions recorded in logs database yet.</div>
-              ) : (
-                logs.map((log) => {
-                  const adminName = log.admin.split("@")[0]; // extract name part of email
-                  const capitalizedAdmin = adminName.charAt(0).toUpperCase() + adminName.slice(1);
-                  return (
-                    <div key={log._id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2 hover:bg-cream/20 transition">
-                      <div className="space-y-0.5">
-                        <p className="text-xs font-extrabold text-forest-dark">
-                          {capitalizedAdmin} {log.action.charAt(0).toLowerCase() + log.action.slice(1)}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-medium">Logged by: {log.admin}</p>
+              {(() => {
+                const filteredLogs = logs.filter((log) =>
+                  log.admin.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  log.action.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                return filteredLogs.length === 0 ? (
+                  <div className="py-8 px-6 text-center text-xs font-bold text-slate-400">
+                    {logs.length === 0 ? "No actions recorded in logs database yet." : "No matching event logs found."}
+                  </div>
+                ) : (
+                  filteredLogs.map((log) => {
+                    let logText = "";
+                    if (log.admin === "system") {
+                      logText = log.action; // Leave "system turned off ..." intact
+                    } else {
+                      const adminName = log.admin.split("@")[0];
+                      const capitalizedAdmin = adminName.charAt(0).toUpperCase() + adminName.slice(1);
+                      logText = `${capitalizedAdmin} ${log.action.charAt(0).toLowerCase() + log.action.slice(1)}`;
+                    }
+                    return (
+                      <div key={log._id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2 hover:bg-cream/20 transition">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-extrabold text-forest-dark">
+                            {logText}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-medium">Logged by: {log.admin}</p>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 shrink-0">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-400 shrink-0">
-                        {new Date(log.timestamp).toLocaleString()}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+                );
+              })()}
             </div>
           </div>
         )}
