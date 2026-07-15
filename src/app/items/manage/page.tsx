@@ -123,7 +123,7 @@ interface SystemConfig {
   shippingCharge: number;
 }
 
-type TabType = "metrics" | "inventory" | "users" | "orders" | "coupons" | "flags" | "logs";
+type TabType = "metrics" | "inventory" | "users" | "orders" | "coupons" | "flags" | "logs" | "add-plant";
 
 export default function ManageDashboardPage() {
   const router = useRouter();
