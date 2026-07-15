@@ -13,6 +13,7 @@ import Button from "@/components/Button";
 import MetricsPanel from "@/components/MetricsPanel";
 import OrdersTable from "@/components/OrdersTable";
 import DashboardTabs from "@/components/DashboardTabs";
+import OrderDetailModal from "@/components/OrderDetailModal";
 
 interface Plant {
   id: string;
