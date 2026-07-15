@@ -11,11 +11,15 @@ interface OrderItem {
 
 interface Order {
   _id: string;
+  userId?: string;
   userEmail: string;
   items: OrderItem[];
   total: number;
   status: "Pending" | "Processing" | "Shipped" | "Delivered";
   createdAt: string;
+  shippingCharge?: number;
+  appliedPromo?: string | null;
+  discount?: number;
 }
 
 interface OrdersTableProps {

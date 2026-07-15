@@ -50,12 +50,15 @@ interface Coupon {
 
 interface Order {
   _id: string;
-  userId: string;
+  userId?: string;
   userEmail: string;
   items: { plantId: string; title: string; quantity: number; price: number }[];
   total: number;
   status: "Pending" | "Processing" | "Shipped" | "Delivered";
   createdAt: string;
+  shippingCharge?: number;
+  appliedPromo?: string | null;
+  discount?: number;
 }
 
 interface SystemConfig {
