@@ -46,11 +46,10 @@ export default function OrdersTable({ orders, onStatusUpdate, onRowClick, isAdmi
             <tr className="bg-sage/5 text-[10px] font-black uppercase tracking-widest text-forest-dark/45 border-b border-sage/10 flex w-full">
               <th className="py-4 px-6 w-2/12 shrink-0">Order ID</th>
               {!isAdmin && <th className="py-4 px-6 w-2/12 shrink-0">Date</th>}
-              <th className={`py-4 px-6 shrink-0 ${isAdmin ? "w-3/12" : "w-4/12"}`}>Customer / Items Purchased</th>
-              {isAdmin && <th className="py-4 px-6 w-3/12 shrink-0">Purchased Items</th>}
+              <th className={`py-4 px-6 shrink-0 ${isAdmin ? "w-4/12" : "w-4/12"}`}>Customer / Items Purchased</th>
+              {isAdmin && <th className="py-4 px-6 w-2/12 shrink-0">Purchased Items</th>}
               <th className="py-4 px-6 w-2/12 shrink-0">Total Amount</th>
               <th className="py-4 px-6 w-2/12 shrink-0">Status</th>
-              {isAdmin && <th className="py-4 px-6 w-2/12 shrink-0 text-center">Change State</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-sage/10 text-forest-dark text-sm max-h-[500px] overflow-y-auto flex flex-col w-full">
@@ -66,11 +65,11 @@ export default function OrdersTable({ orders, onStatusUpdate, onRowClick, isAdmi
                     {new Date(o.createdAt).toLocaleDateString()}
                   </td>
                 )}
-                <td className={`py-4 px-6 shrink-0 font-bold text-forest-dark truncate ${isAdmin ? "w-3/12" : "w-4/12"}`}>
+                <td className={`py-4 px-6 shrink-0 font-bold text-forest-dark truncate ${isAdmin ? "w-4/12" : "w-4/12"}`}>
                   {isAdmin ? o.userEmail : o.items?.map((item) => `${item.title} (x${item.quantity})`).join(", ") || "No items"}
                 </td>
                 {isAdmin && (
-                  <td className="py-4 px-6 w-3/12 shrink-0 text-xs text-slate-500 truncate">
+                  <td className="py-4 px-6 w-2/12 shrink-0 text-xs text-slate-500 truncate">
                     {o.items?.map((item) => `${item.title} (x${item.quantity})`).join(", ") || "No items"}
                   </td>
                 )}
@@ -88,25 +87,6 @@ export default function OrdersTable({ orders, onStatusUpdate, onRowClick, isAdmi
                     {o.status || "Pending"}
                   </span>
                 </td>
-                {isAdmin && onStatusUpdate && (
-                  <td className="py-4 px-6 w-2/12 shrink-0">
-                    <div className="flex justify-center gap-1">
-                      {["Pending", "Processing", "Shipped", "Delivered"].map((st) => (
-                        <button
-                          key={st}
-                          onClick={() => onStatusUpdate(o._id, st)}
-                          className={`px-1.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border transition cursor-pointer ${
-                            o.status === st
-                              ? "bg-forest text-white border-forest"
-                              : "bg-white text-slate-400 border-slate-200 hover:bg-slate-50"
-                          }`}
-                        >
-                          {st.slice(0, 4)}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                )}
               </tr>
             ))}
           </tbody>
