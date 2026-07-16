@@ -16,7 +16,7 @@ export default function Register() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "user" as "user" | "admin",
+    role: "user" as "user" | "seller",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -371,7 +371,7 @@ export default function Register() {
                   className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 pl-12 text-sm text-slate-800 outline-none transition-all duration-200 focus:border-forest focus:ring-2 focus:ring-forest/15 appearance-none"
                 >
                   <option value="user">Standard User (Plant Browser)</option>
-                  <option value="admin">Administrator (Inventory Manager)</option>
+                  <option value="seller">Seller (Store Owner)</option>
                 </select>
               </div>
             </div>
